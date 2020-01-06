@@ -54,9 +54,9 @@ class WoolooBot(commands.Bot):
 
 bot = WoolooBot()
 
-@bot.check
-async def debug_restrict_jacob(ctx):
-    return ctx.message.author.id == 232650437617123328 or ctx.message.author.id == 340838512834117632
+# @bot.check
+# async def debug_restrict_jacob(ctx):
+#     return ctx.message.author.id == 232650437617123328 or ctx.message.author.id == 340838512834117632
 
 @bot.event
 async def on_ready():

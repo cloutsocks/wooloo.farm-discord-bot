@@ -46,11 +46,27 @@ EMOJI = {
     'sword': '<:sword:662369277411721246>',
     'shield': '<:shield:662369277457989635>',
 
+    'join': '<:memberjoin:663542559573803043>',
+    'pin_unread': '<:pinunread:663544333210746902>',
 
     'pokeball': '<:pb:662385068613828628>',
     'masterball': '<:mb:662385068097929228>',
     'skip': '<:skip:662385111060185088>',
 }
+
+ANNOUNCE_EMOJI = ['<:wuwu:650913724068134923>',
+    '<:woolooflop:650913724131049501>',
+    '<a:wooloofast:652220524138725376>',
+    '<:woocooloo:656493244930064419>',
+    '<:stinkey:653658038296641537>',
+    '<:squirtle:658799430916374544>',
+    '<:PREMIERballguy:652594607053602826>',
+    '<:jacob:653477874812059649>',
+    '<:jacobsdog:652706135937122318>',
+    '<:elliot:652655772185919488>',
+    '<:lily:652655770869170197>',
+    '<:honks:656493643690934273>'
+]
 
 pokeballUrl = 'http://play.pokemonshowdown.com/sprites/itemicons/poke-ball.png'
 

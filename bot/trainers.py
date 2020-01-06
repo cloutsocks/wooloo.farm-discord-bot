@@ -82,7 +82,7 @@ class Trainers(commands.Cog):
     wf profile
     '''
 
-    async def get_wf_profile(self, ctx, uid, refresh=False):
+    async def get_wf_profile(self, uid, ctx=None, refresh=False):
         if refresh or uid not in self.wfcache or time.time() > self.wfcache[uid]['expires']:
             if ctx:
                 await ctx.trigger_typing()
@@ -107,7 +107,7 @@ class Trainers(commands.Cog):
             if not member:
                 return await send_user_not_found(ctx, arg)
 
-        profile = await self.get_wf_profile(ctx, member.id, refresh)
+        profile = await self.get_wf_profile(member.id, ctx, refresh)
         if not profile:
             return await send_message(ctx, f'{str(member)} does not have a profile on http://wooloo.farm/', error=True)
 
@@ -129,7 +129,7 @@ class Trainers(commands.Cog):
             if not member:
                 return await send_user_not_found(ctx, arg)
 
-        profile = await self.get_wf_profile(ctx, member.id, refresh)
+        profile = await self.get_wf_profile(member.id, ctx, refresh)
         if not profile:
             return await send_message(ctx, f'{str(member)} does not have a profile on http://wooloo.farm/', error=True)
 
@@ -148,32 +148,34 @@ class Trainers(commands.Cog):
     permissions
     '''
 
-    async def can_raid(self, ctx, uid):
+    async def can_raid(self, member, host_id, ctx=None):
 
         # todo maybe has raiders role check
 
-        roles = ctx.author.roles
+        roles = member.roles
         if discord.utils.get(roles, name='banned from raiding'):
             return False, 'ROLE_BANNED_FROM_RAIDING'
 
-        profile = await self.get_wf_profile(ctx, uid)
+        profile = await self.get_wf_profile(member.id, ctx)
         hri, err = has_raid_info(profile)
         if not hri:
             return hri, err
 
+        # todo check block list
+
         return True, None
 
-    async def can_host(self, ctx, uid):
+    async def can_host(self, member, ctx=None):
 
         # todo maybe has raiders role check
 
-        roles = ctx.author.roles
+        roles = member.roles
         if discord.utils.get(roles, name='banned from raiding'):
             return False, 'ROLE_BANNED_FROM_RAIDING'
         if discord.utils.get(roles, name='banned from hosting'):
             return False, 'ROLE_BANNED_FROM_HOSTING'
 
-        profile = await self.get_wf_profile(ctx, uid)
+        profile = await self.get_wf_profile(member.id, ctx)
         hri, err = has_raid_info(profile)
         if not hri:
             return hri, err
