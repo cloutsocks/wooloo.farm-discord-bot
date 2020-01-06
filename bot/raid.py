@@ -14,6 +14,9 @@ from trainers import ign_as_text, fc_as_text
 
 MAXRAIDS = 10
 
+RAID_EMOJI = '🍰'
+LOCK_EMOJI = '🔒'
+
 
 def make_readme(active_raids_id, raid_thanks_id):
     return [f'''
@@ -98,6 +101,12 @@ class RaidPool(object):
 
     def size(self):
         return len(self.mb) + len(self.pb) + len(self.queued_until_shuffle)
+
+    def as_text(self):
+        return f'''queued: {self.queued_until_shuffle}
+mb {self.mb}
+pb {self.pb}
+used_mb {self.used_mb}'''
 
     def get_group(self, n):
         group = []
@@ -231,7 +240,7 @@ Are you sure you want to continue? Type `.host new help` for more setting option
         if '1' in profile['games'] and 'name' in profile['games']['1'] and profile['games']['1']['name']:
             games.append([f"{EMOJI['shield']} **IGN**", profile['games']['1']['name']])
 
-        description = f'''🐉 _hosted by <@{self.host.id}> in <#{self.channel.id}>_'''
+        description = f'''{RAID_EMOJI} _hosted by <@{self.host.id}> in <#{self.channel.id}>_'''
         if self.desc:
             description += f'\n\n_"{self.desc}"_'
         description += FIELD_BREAK
@@ -314,7 +323,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         elif self.code:
             code = self.code
         if not code:
-            return await send_message(ctx, f'Please choose a valid 4-digit code in the form `.host round 1234`. You can re-use this code for subsequent rounds by just typing `.host round`', error=True)
+            return await send_message(ctx, f'Please choose a valid 4-digit code in the form `.round 1234`. You can re-use this code for subsequent rounds by just typing `.round`', error=True)
 
         self.code = code
         await self.new_round(ctx)
@@ -373,13 +382,15 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         await self.channel.set_permissions(member, read_messages=False)
 
         uid = member.id
-        try:
-            self.pool.queued_until_shuffle.remove(uid)
+        if uid in self.pool.pb:
             self.pool.pb.remove(uid)
+        if uid in self.pool.mb:
             self.pool.mb.remove(uid)
-        except ValueError:
-            pass
+        if uid in self.pool.queued_until_shuffle:
+            self.pool.queued_until_shuffle.remove(uid)
         self.pool.kicked.append(uid)
+
+        await member.send(f"You were kicked from this raid and cannot rejoin. You probably didn't read the rules or were unpleasant. Do better next time.")
 
         msg = f'<@{uid}> has been kicked from this raid. They will not be able to see this channel or rejoin.'
         if member.id in [t[1] for t in self.group]:
@@ -393,15 +404,15 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     joins/leaves
     '''
 
-    async def add_user(self, uid, join_type, reaction):
+    async def add_user(self, user, join_type, reaction):
+        uid = user.id
         if uid == self.host.id:
             return
 
-        user = self.bot.get_user(uid)
         member = self.bot.raid.guild.get_member(uid)
         can_raid, err = await self.bot.trainers.can_raid(member, self.host.id)
         if not can_raid:
-            # await reaction.message.remove_reaction(reaction, user)
+            await reaction.message.remove_reaction(reaction, user)
             msg = make_error_msg(err, uid)
             if member:
                 await member.send(msg)
@@ -428,11 +439,10 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             if uid in self.pool.pb:
                 join_type = 'mb+'
 
-            try:
-                self.pool.queued_until_shuffle.remove(uid)
+            if uid in self.pool.pb:
                 self.pool.pb.remove(uid)
-            except ValueError:
-                pass
+            if uid in self.pool.queued_until_shuffle:
+                self.pool.queued_until_shuffle.remove(uid)
 
             self.pool.used_mb.append(uid)
             self.pool.mb.append(uid)
@@ -442,7 +452,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         elif join_type == 'pb':
             if uid in self.pool.pb or uid in self.pool.mb or uid in self.pool.queued_until_shuffle:
-                # await reaction.message.remove_reaction(reaction, user)
+                await reaction.message.remove_reaction(reaction, user)
                 return
 
             self.pool.queued_until_shuffle.append(uid)
@@ -450,14 +460,14 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             await self.channel.set_permissions(member, send_messages=True)
             self.pool.join_history.append(uid)
 
-    async def remove_user(self, uid):
-        try:
-            self.pool.queued_until_shuffle.remove(uid)
+    async def remove_user(self, user):
+        uid = user.id
+        if uid in self.pool.pb:
             self.pool.pb.remove(uid)
+        if uid in self.pool.mb:
             self.pool.mb.remove(uid)
-
-        except ValueError:
-            pass
+        if uid in self.pool.queued_until_shuffle:
+            self.pool.queued_until_shuffle.remove(uid)
 
         member = self.bot.raid.guild.get_member(uid)
         await self.channel.set_permissions(member, send_messages=False)
@@ -484,12 +494,20 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         elif join_type == 'mb+':
             return await self.channel.send(f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
 
-    async def end(self):
+    async def end(self, immediately=False):
         self.closed = True
         await self.channel.trigger_typing()
+        await self.channel.edit(name=f'{LOCK_EMOJI}{self.channel_name[1:]}')
+        for target, overwrite in self.channel.overwrites.items():
+            await self.channel.set_permissions(target, overwrite=None)
 
-        msg = f'''✨ **Raid Host Complete!**
+        await self.channel.set_permissions(self.bot.raid.guild.default_role, send_messages=False, add_reactions=False)
+        await self.channel.set_permissions(self.bot.raid.guild.me, send_messages=True, add_reactions=True)
 
+        if not immediately:
+            if self.round >= 3 and not immediately:
+                msg = f'''✨ **Raid Host Complete!**
+        
 Thank you for raiding, this channel is now closed!
 
 To thank <@{self.host.id}> for their hard work with hosting, head to <#{self.bot.raid.thanks_channel.id}> and react with a 💙 !
@@ -497,26 +515,30 @@ If you managed to catch one, add in a {EMOJI['pokeball']} !
 
 _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
 
-        '''
-        this won't work until 3.5
-        overwrites = {
-            self.bot.raid.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
-            self.bot.raid.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
-        }
-        await self.channel.edit(name=f'🔒{self.channel_name[1:]}', overwrites={})
-        '''
+                '''
+                this won't work until 3.5
+                overwrites = {
+                    self.bot.raid.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
+                    self.bot.raid.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
+                }
+                await self.channel.edit(name=f'{LOCK_EMOJI}{self.channel_name[1:]}', overwrites={})
+                '''
+                await self.make_thanks_post()
+            else:
+                msg = f'''✨ **Raid Host Complete!**
+    
+Thank you for raiding, this channel is now closed! We won't make a "thanks" post since it was such a short one (in case it was a mistake or so).
 
-        await self.channel.edit(name=f'🔒{self.channel_name[1:]}')
-        for target, overwrite in self.channel.overwrites.items():
-            await self.channel.set_permissions(target, overwrite=None)
+_This channel will automatically delete in a little while_ {EMOJI['flop']}'''
+            await self.channel.send(msg)
 
-        await self.channel.set_permissions(self.bot.raid.guild.default_role, send_messages=False, add_reactions=False)
-        await self.channel.set_permissions(self.bot.raid.guild.me, send_messages=True, add_reactions=True)
-        await self.make_thanks_post()
-        await self.channel.send(msg)
         await self.listing_message.delete()
-        await asyncio.sleep(60 * 10)
+
+        if not immediately:
+            await asyncio.sleep(60 * 10)
         await self.channel.delete()
+        del self.bot.raid.raids[self.host.id]
+        self.destroy()
 
 class Raid(commands.Cog):
     def __init__(self, bot):
@@ -544,37 +566,37 @@ class Raid(commands.Cog):
         await self.on_load()
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, reaction):
-        await self.reaction_action('add', reaction)
+    async def on_reaction_add(self, reaction, user):
+        await self.reaction_action('add', reaction, user)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, reaction):
-        await self.reaction_action('remove', reaction)
+    async def on_reaction_remove(self, reaction, user):
+        await self.reaction_action('remove', reaction, user)
 
-    async def reaction_action(self, action, reaction):
+    async def reaction_action(self, action, reaction, user):
         if not self.listing_channel:
             return
 
-        if reaction.user_id == self.bot.user.id:
+        if user.id == self.bot.user.id:
             return
 
-        if reaction.channel_id != self.listing_channel.id:
+        if reaction.message.channel.id != self.listing_channel.id:
             return
 
         if str(reaction.emoji) not in [EMOJI['pokeball'], EMOJI['masterball']]:
             return
 
         raid = None
-        for uid, r in self.raids.items():
-            if r.listing_message.id == reaction.message_id:
+        for host_id, r in self.raids.items():
+            if r.listing_message.id == reaction.message.id:
                 raid = r
 
         if action == 'add':
             join_type = 'mb' if str(reaction.emoji) == EMOJI['masterball'] else 'pb'
-            await raid.add_user(reaction.user_id, join_type, reaction)
+            await raid.add_user(user, join_type, reaction)
 
         elif action == 'remove':
-            await raid.remove_user(reaction.user_id)
+            await raid.remove_user(user)
 
     # todo move to admin module
     @commands.command()
@@ -645,7 +667,7 @@ class Raid(commands.Cog):
                 arg = arg.replace(m.group(0), '')
 
             name = arg.strip()
-            channel_name = f"🐉-{name.replace(' ', '-')}"
+            channel_name = f"{RAID_EMOJI}-{name.replace(' ', '-')}"
 
 
             can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
@@ -679,22 +701,25 @@ class Raid(commands.Cog):
         await channel.send(f"<@{raid.host.id}> {msg}Your raid was cancelled. {EMOJI['flop']}")
 
     @commands.command()
-    async def round(self, ctx, arg):
+    async def round(self, ctx, arg=None):
         uid = ctx.author.id
         if uid in self.raids:
             return await self.raids[uid].round_command(ctx, arg)
 
     @commands.command(aliases=['end'])
-    async def close(self, ctx):
+    async def close(self, ctx, arg=None):
         uid = ctx.author.id
         if uid in self.raids:
             return await self.raids[uid].end()
 
         user = self.bot.get_user(uid)
-        if user.administrator:
-            for raid in self.raids:
+
+        if ctx.author.guild_permissions.administrator:
+            for host_id, raid in self.raids.items():
                 if raid.channel == ctx.channel:
-                    return await raid.end()
+                    print("admin close")
+                    print("immediately" in arg)
+                    return await raid.end('immediately' in arg)
 
 
     '''
@@ -836,7 +861,7 @@ class Raid(commands.Cog):
                 await self.listing_channel.purge(limit=100)
 
             for channel in self.category.text_channels:
-                if channel.name.startswith('🐉') or channel.name.startswith('🔒'):
+                if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCK_EMOJI):
                     await channel.delete()
 
     async def make_raid_channel(self, raid, channel_ctx):
