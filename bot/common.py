@@ -42,6 +42,7 @@ EMOJI = {
     'heimlichegg': '<:heimlichandegg:656164155069562881>',
     'flop': '<:woolooflop:661638062119452677>',
     'wooloo': '<:wooloo:650911948757532672>',
+    'honk': '<:honks:656493643690934273>',
 
     'sword': '<:sword:662369277411721246>',
     'shield': '<:shield:662369277457989635>',

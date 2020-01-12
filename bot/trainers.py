@@ -75,7 +75,7 @@ def fc_as_text(profile):
 class Trainers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.userdb = bot.trainerdb
+        # self.userdb = bot.trainerdb
         self.wfcache = {}
 
     '''
@@ -90,7 +90,6 @@ class Trainers(commands.Cog):
             if not profile:
                 return None
 
-            # todo set to time.time() + 60 * 5
             hri, err = has_raid_info(profile)
             expires = -1 if not hri else time.time() + 86400 / 2
             self.wfcache[uid] = {'profile': profile, 'expires': expires}

@@ -7,61 +7,114 @@ import asyncio
 import checks
 
 from common import clamp, idPattern, send_message, print_error, resolve_mention, send_user_not_found, \
-                   pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, ICON_CLOSE
+                   pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, ICON_CLOSE, enquote
 from discord.ext import commands
 
 from trainers import ign_as_text, fc_as_text
 
 MAXRAIDS = 10
 
-RAID_EMOJI = '🍰'
+RAID_EMOJI = '🐑'
 LOCK_EMOJI = '🔒'
 
+CREATE_HELP = '''_Creating a Raid_
+`.host <channel name>`
+**+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
+**+** _optional:_ `.host <channel name> max=20` to limit raiders
+**+** _optional:_ add `ffa` to `<channel name>` to disable managed queues
+**+** _optional:_ add `no mb` to disable priority masterball raiders'''
 
-def make_readme(active_raids_id, raid_thanks_id):
-    return [f'''
-**Everyone, Read Me Carefully** 
-- your raid has been posted to <#{active_raids_id}>, where trainers can join the **raid pool** by clicking {EMOJI["pokeball"]} or {EMOJI["masterball"]} 
-- anyone in the raid pool can type in this channel
-- i, mr. wooloo.farm bot, will try to make it as painless as possible for you!
-- when there are more than 3 trainers or you're ready to start hosting, type `.round <4 digit code>` to start a new round!
-- when the round is complete, just repeat the command to start the next one!
-- you can also re-use the same code for subsequent rounds by just typing `.round`
-- every time you start a round, 3 trainers in the pool will be chosen at random to join you, with {EMOJI["masterball"]} having priority
-   :one: i'll ping the 3 users whose turn it is, and show you their IGN, Switch Name and FC to compare against
-   :two: it does not matter if a user fails to catch a pokemon, we still take turns one by one _until everyone has gone_
-   :three: i'll continue to choose 3 trainers until **everyone in the pool has had a turn**
-   :four: once everyone has gone, we'll shuffle the pool and start again!
+def make_readme(desc, active_raids_id, raid_thanks_id):
+    notice = f"\n\nThe host expects everyone to know the following: _{enquote(desc)}_" if desc else ""
 
-**Keeping Things Nice**
-- when participants are finished raiding or want a break, you are expected and required to leave the raid by **unclicking** the {EMOJI["pokeball"]} or {EMOJI["masterball"]} in <#{active_raids_id}>
-- **you can rejoin** at any time
-- hosts are completely free to remove users for **any reason whatsoever, no questions asked**! this is their room and they do not have to host you.
-   * if you'd like to temporarily remove a user from _this_ raid, use `.kick @user`
-   * if you'd like to block a user from _all_ of your raids, use `.block @user`
-   * you can check your block list with `.block` and unblock a trainer with `.unblock @user`
-- reacting to a block is forbidden, if this happens, contact mods. **hosts do not have to explain why they blocked you.**
+    # todo message limit
+    return [f'''{EMOJI["wooloo"]} **Everyone, Read This Carefully** {EMOJI["wooloo"]}
+
+I help manage raids! Everyone gets a turn in the order they joined, with {EMOJI["masterball"]} getting priority. Even if you don't catch it, it still counts as a turn. But don't worry! Once we cycle through everyone, we start the queue over.{notice}
 ''',
 
 f'''
-**Recommendations**
-- if a trainer is afk when it's time for them to join, we recommend you `.kick` or `.block` them.
-- for a gentler option, `.skip` will find a new trainer to replace them and ping them accordingly, leaving the afk trainer in the pool
-- if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
-- if a trainers "forgets" to use their masterball when they sign up as {EMOJI["masterball"]} _definitely_ block them
+**For Participants**
+_Commands_
+`.queue` / `.q` to have the current queue DM'd to you
+`.caught` to indicate you've caught the Pokémon
 
-**Misc & Wrapping Up**
-- a trainer who previously signed up as {EMOJI["pokeball"]} may switch to using a masterball **once** by going back to <#{active_raids_id}> and clicking the {EMOJI["masterball"]}
-- when you are finished hosting, type `.end`
-   * this channel will close, and users will be directed to <#{raid_thanks_id}> to send a little :blue_heart: your way as thanks
-   * **do not go afk!** _you cannot pause raids._ if you wait 30 minutes, it's likely many of the users in your pool will be away and the whole thing falls apart
-   * you can, however, end the raid and create a new one when you're back! it'll work just as good :))
-            
-**Host Commands Recap**
-- `.round <code>` or `.round` after a code is set
-- `.block` / `.unblock` / `.kick` / `.skip` `@user` or `<1-3>` during a round
-- `.end`
+<:checkfilled:663544333374586900> **1**)  if you don't follow instructions, you might get kicked or blocked by the host
+<:checkfilled:663544333374586900> **2**)  enter this raid by visiting <#{active_raids_id}>
+<:checkfilled:663544333374586900> **3**)  do not join until instructed to do so by the bot
+<:checkfilled:663544333374586900> **4**)  don't ask the host to join, for their friend code, or what the raid code is—**i'll tell you all of that when it's your turn** {EMOJI["flop"]}
+<:checkfilled:663544333374586900> **5**)  when you're done raiding, you **have** to leave the raid by **unclicking** the {EMOJI["pokeball"]} or {EMOJI["masterball"]} in <#{active_raids_id}>
+<:checkfilled:663544333374586900> **6**)  you must also **remove the host from your friend's list**, even if you intend to raid with them again later!
+<:checkfilled:663544333374586900> **7**)  **you can rejoin** at any time (unless you've used a {EMOJI["masterball"]})
+<:checkfilled:663544333374586900> **8**)  hosts are completely free to remove users for **any reason whatsoever, no questions asked**! this is their room and they do not have to host you.
+<:checkfilled:663544333374586900> **9**)  don't react to a kick or block! **hosts do not have to explain why they blocked you.** if this happens, please contact mods.
+<:checkfilled:663544333374586900> **10**)  if you joined with a {EMOJI["pokeball"]}, you can switch to a masterball **once** by going back to <#{active_raids_id}> and clicking the {EMOJI["masterball"]} (but you better use one or you'll get blocked!)
+<:checkfilled:663544333374586900> **11**)  when you've caught the Pokémon, please write `.caught`!
+''',
 
+f'''
+**For Hosts**
+_Commands_
+`.host help` to show these commands
+`.fc <@user>` to display FC / IGN / Switch Name
+`.queue` / `.q` to show the current queue in the channel for everyone to see
+`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
+`.skip @user` to skip and replace someone in the current round
+`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
+`.block @user` to remove (and skip) a user from **all** of your raids
+`.group <msg>` to ping everyone in the current round's group with a message
+`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
+[**NEW**]
+`.pin` to pin your last message
+`.unpin <#>` to unpin a message
+
+<:checkfilled:663544333374586900> **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
+<:checkfilled:663544333374586900> **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
+<:checkfilled:663544333374586900> **3**)  if a trainers "forgets" to use their masterball when they sign up as {EMOJI["masterball"]} _definitely_ block them
+<:checkfilled:663544333374586900> **4**)  **do not go afk when hosting!** _you cannot pause raids._ if you wait 30 minutes, it's likely many of the users in your pool will be away and the whole thing falls apart
+<:checkfilled:663544333374586900> **5**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
+<:checkfilled:663544333374586900> **6**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed and blocked users **cannot rejoin**)
+''']
+
+def make_readme_ffa(desc, active_raids_id, raid_thanks_id):
+    notice = f"\n\nThe host expects everyone to know the following: {enquote(desc)}" if desc else ""
+
+    # todo message limit
+    return [f'''{EMOJI["wooloo"]} **Everyone, Read This Carefully** {EMOJI["wooloo"]}
+
+This is a **free-for-all** raid! There is no queue, but follow the instructions of the host.{notice}
+''',
+
+f'''
+**For Participants**
+_Commands_
+`.queue` / `.q` to have the current queue DM'd to you
+`.caught` to indicate you've caught the Pokémon
+
+<:checkfilled:663544333374586900> **1**)  if you don't follow instructions, you might get kicked or blocked by the host
+<:checkfilled:663544333374586900> **2**)  enter this raid by visiting <#{active_raids_id}>
+<:checkfilled:663544333374586900> **3**)  when you're done raiding, you have to **remove the host from your friend's list**, even if you intend to raid with them again later!
+<:checkfilled:663544333374586900> **4**)  hosts are completely free to remove users for **any reason whatsoever, no questions asked**! this is their room and they do not have to host you.
+<:checkfilled:663544333374586900> **5**)  don't react to a kick or block! **hosts do not have to explain why they blocked you.** if this happens, please contact mods.
+<:checkfilled:663544333374586900> **6**)  when you've caught the Pokémon, please write `.caught`!
+''',
+
+f'''
+**For Hosts**
+_Commands_
+`.host help` to show these commands
+`.skip @user` to skip and replace someone in the current round
+`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
+`.block @user` to remove (and skip) a user from **all** of your raids
+`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
+[**NEW**]
+`.pin` to pin your last message
+`.unpin <#>` to unpin a message
+
+<:checkfilled:663544333374586900> **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
+<:checkfilled:663544333374586900> **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
+<:checkfilled:663544333374586900> **3**)  **do not go afk when hosting!** _you cannot pause raids._
+<:checkfilled:663544333374586900> **4**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
 ''']
 
 
@@ -90,63 +143,91 @@ def make_error_msg(err, uid):
 
 class RaidPool(object):
     def __init__(self):
-        self.queued_until_shuffle = []
+        self.i = 0
+        self.q = []
         self.mb = []
-        self.pb = []
-        # self.mb = [340838512834117632, 340838512834117632]
-        # self.pb = [340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632]
         self.used_mb = []
         self.join_history = []
         self.kicked = []
 
+        # self.q = [340838512834117632] * 30
+        # self.join_history = [340838512834117632] * 30
+
+        # self.i = 0
+        # self.q = [340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632]
+        # self.mb = [340838512834117632, 340838512834117632]
+        # self.used_mb = []
+        # self.join_history = [340838512834117632, 474971416358551554, 257574610004869120, 232650437617123328]
+        # self.kicked = []
+
     def size(self):
-        return len(self.mb) + len(self.pb) + len(self.queued_until_shuffle)
+        return len(self.mb) + len(self.q)
+
+    def remove(self, uid):
+        if uid not in self.join_history:
+            return False
+
+        removed = False
+        if uid in self.mb:
+            self.mb.remove(uid)
+            removed = True
+
+        try:
+            index = self.q.index(uid)
+            if index < self.i:
+                self.i -= 1
+            self.q.remove(uid)
+            removed = True
+
+        except ValueError:
+            pass
+
+        return removed
 
     def as_text(self):
-        return f'''queued: {self.queued_until_shuffle}
-mb {self.mb}
-pb {self.pb}
+        return f'''mb {self.mb}
+pb {self.q}
 used_mb {self.used_mb}'''
 
-    def get_group(self, n):
-        group = []
-        while len(group) < n and self.mb:
-            group.append(('mb', self.mb.pop(0)))
+    def get_next(self, n=1, advance=False):
 
-        while len(group) < n and self.pb:
-            group.append(('pb', self.pb.pop(0)))
+        mb_out = self.mb[:n]
+        out = [('mb', uid) for uid in mb_out]
 
-        if len(group) == n:
-            self.queued_until_shuffle += [t[1] for t in group]
-            return group, False
-        else:
-            while len(group) < n and self.queued_until_shuffle:
-                group.append(('pb', self.queued_until_shuffle.pop(0)))
+        if advance:
+            self.mb = self.mb[n:]
 
-            self.pb = self.queued_until_shuffle + [t[1] for t in group]
-            self.queued_until_shuffle = []
-            random.shuffle(self.pb)
-            return group, True
+        wraparound = False
+        end = self.i + n - len(out)
+        out += [('pb', uid) for uid in self.q[self.i:end]]
+        if len(out) < n:
+            wraparound = True
+            end = remaining = n - len(out)
+            out += [('pb', uid) for uid in self.q[0:remaining]]
 
-    def status_as_text(self, shuffled):
-        if shuffled:
-            return f'♻️  Everyone in the pool has had an attempt, so it\'s been **reshuffled** with all the new raiders added! There are now **{self.size()}** trainers in the pool, **0** on standby.'
+        if advance:
+            self.i = end
+            # self.q += mb_out
 
-        pool_size = len(self.pb) + len(self.mb)
-
-        return f'♻️  **{pool_size}** trainers left in pool until reshuffle, **{len(self.queued_until_shuffle)}** on standby, to be added next shuffle.'
+        return out, wraparound
 
 
 class HostedRaid(object):
-    def __init__(self, bot, host):
+    def __init__(self, bot, raid, guild, host):
         self.bot = bot
+        self.raid = raid
+        self.guild = guild
         self.host = host
 
+        self.no_mb = False
+        self.ffa = False
         self.raid_name = None
         self.channel = None
         self.channel_name = None
         self.desc = None
         self.listing_message = None
+        self.last_round_message = None
+        self.pins = []
 
         self.round = 0
         self.max_joins = 30
@@ -169,22 +250,37 @@ class HostedRaid(object):
     def destroy(self):
         self.bot.clear_wait_fors(self.host)
 
-    async def send_confirm_prompt(self, ctx, raid_name, channel_name, desc=None, max_joins=30):
+    async def send_confirm_prompt(self, ctx, raid_name, channel_name, desc=None, max_joins=30, no_mb=False):
         if self.confirmed or self.channel or self.message:
             return
 
         self.raid_name = raid_name
         self.channel_name = channel_name
-        self.max_joins = clamp(max_joins, 3, 30)
+        self.ffa = 'ffa' in self.channel_name.lower()
+        self.max_joins = clamp(max_joins, 3, 50 if self.ffa else 30)
+        self.no_mb = no_mb
+        options = []
+        if self.ffa:
+            options.append('**FFA**')
+        if self.no_mb:
+            options.append('**no masterball**')
+
+        if options:
+            options = (', '.join(options)) + ' '
+        else:
+            options = ''
+
         if not desc:
-            msg = f'''<@{self.host.id}> This will create a new raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
+            msg = f'''<@{self.host.id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
             
-You may also set a welcome / introduction / description message such as: `.host new <name> "please leave my raids after catching or i will block"` or whatever else you\'d like your guests to know (stats, etc). Type `.host new help` for more setting options.'''
+{CREATE_HELP}'''
         else:
             self.desc = desc
-            msg = f'''<@{self.host.id}> This will create a new raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description `{desc}`
+            msg = f'''<@{self.host.id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
             
-Are you sure you want to continue? Type `.host new help` for more setting options.'''
+Are you sure you want to continue?
+
+{CREATE_HELP}'''
 
 
         self.message = await ctx.send(msg)
@@ -200,7 +296,7 @@ Are you sure you want to continue? Type `.host new help` for more setting option
             if emoji == EMOJI['pokeball']:
                 await self.confirm_and_create(reaction.message.channel)
             elif emoji == ICON_CLOSE:
-                await self.bot.raid.cancel_before_confirm(self, reaction.message.channel)
+                await self.raid.cancel_before_confirm(self, reaction.message.channel)
 
     async def confirm_and_create(self, channel_ctx):
         self.bot.clear_wait_fors(self.host)
@@ -208,8 +304,8 @@ Are you sure you want to continue? Type `.host new help` for more setting option
         if self.confirmed or self.channel:
             return
 
-        if len(self.bot.raid.raids) >= MAXRAIDS:
-            return await self.bot.raid.cancel_before_confirm(self, channel_ctx, f'Unfortunately, we already have the maximum number of **{MAXRAIDS}** raids being hosted. Please wait a bit and try again later.')
+        if len(self.raid.raids) >= MAXRAIDS:
+            return await self.raid.cancel_before_confirm(self, channel_ctx, f'Unfortunately, we already have the maximum number of **{MAXRAIDS}** raids being hosted. Please wait a bit and try again later.')
 
         # todo verify can host?
 
@@ -220,14 +316,27 @@ Are you sure you want to continue? Type `.host new help` for more setting option
         self.pool = RaidPool()
         self.group = []
 
-        self.channel = await self.bot.raid.make_raid_channel(self, channel_ctx)
+        self.channel = await self.raid.make_raid_channel(self, channel_ctx)
 
-        await self.channel.send(f"{EMOJI['wooloo']} _Welcome to your raid room, <@{self.host.id}>!_")
+        await self.channel.send(f"✨ _Welcome to your raid room, <@{self.host.id}>!_")
 
-        readme = make_readme(self.bot.raid.listing_channel.id, self.bot.raid.thanks_channel.id)
-        msg = await self.channel.send(f"{FIELD_BREAK}{readme[0]}")
-        await self.channel.send(f"{FIELD_BREAK}{readme[1]}")
-        await msg.pin()
+        readme = make_readme_ffa(self.desc, self.raid.listing_channel.id, self.raid.thanks_channel.id) if self.ffa \
+            else make_readme(self.desc, self.raid.listing_channel.id, self.raid.thanks_channel.id)
+        msg1 = await self.channel.send(f"{FIELD_BREAK}{readme[0]}")
+        msg2 = await self.channel.send(f"{FIELD_BREAK}{readme[1]}")
+        msg3 = await self.channel.send(f"{FIELD_BREAK}{readme[2]}")
+        await msg2.pin()
+        await msg3.pin()
+        await msg1.pin()
+
+        mention = f'<@{self.host.id}>'
+        profile = await self.bot.trainers.get_wf_profile(self.host.id)
+        profile_info = fc_as_text(profile)
+        icon = '👑'
+        raider_text = f'{icon} {mention}\n{profile_info}{FIELD_BREAK}'
+        e = discord.Embed(title='Host Details', description=raider_text)  # .set_footer(text='🐑 wooloo.farm')
+        host_details = await self.channel.send('', embed=e)
+        await host_details.pin()
 
         await self.make_raid_post()
 
@@ -242,12 +351,27 @@ Are you sure you want to continue? Type `.host new help` for more setting option
 
         description = f'''{RAID_EMOJI} _hosted by <@{self.host.id}> in <#{self.channel.id}>_'''
         if self.desc:
-            description += f'\n\n_"{self.desc}"_'
+            description += f'\n\n_{enquote(self.desc)}_'
         description += FIELD_BREAK
 
-        instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool or {EMOJI["masterball"]} _only_ if you're going to use a masterball.
+        # ffa mode
+        if self.ffa:
+            reactions = [EMOJI['pokeball']]
+            instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool! This is an **FFA** raid (there is no bot-managed queue).
+            
+Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
+        # queue, no masterballs
+        elif self.no_mb:
+            reactions = [EMOJI['pokeball']]
+            instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool! {EMOJI["masterball"]} are **disabled** for this raid.
 
 When you are done raiding, you **must** leave the raid by removing your {EMOJI["pokeball"]} reaction. Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
+        # queue, masterballs
+        else:
+            reactions = [EMOJI['pokeball'], EMOJI['masterball']]
+            instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool or {EMOJI["masterball"]} _only_ if you're going to use a masterball (at which point you'll be removed from the queue).
+
+            When you are done raiding, you **must** leave the raid by removing your {EMOJI["pokeball"]} reaction. Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
 
         footer = ''
         thumbnail = f"https://static.wooloo.farm/games/swsh/species_lg/831{'_S' if 'shiny' in self.channel_name.lower() else ''}.png"
@@ -263,8 +387,8 @@ When you are done raiding, you **must** leave the raid by removing your {EMOJI["
 
         e.add_field(name='🎮 Switch Name', value=profile['switch_name'], inline=True)
 
-        self.listing_message = await self.bot.raid.listing_channel.send('', embed=e)
-        for reaction in [EMOJI['pokeball'], EMOJI['masterball']]:
+        self.listing_message = await self.raid.listing_channel.send('', embed=e)
+        for reaction in reactions:
             await self.listing_message.add_reaction(reaction.strip('<>'))
 
     async def make_thanks_post(self):
@@ -282,7 +406,7 @@ _This raid was hosted by <@{self.host.id}>_
 
 To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI['pokeball']} !'''
         if self.desc:
-            description += f'\n\n_"{self.desc}"_'
+            description += f'\n\n_{enquote(self.desc)}_'
         description += FIELD_BREAK
 
         footer = ''
@@ -297,9 +421,42 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         e.add_field(name='🎮 Switch Name', value=profile['switch_name'], inline=True)
 
-        thanks_message = await self.bot.raid.thanks_channel.send('', embed=e)
+        thanks_message = await self.raid.thanks_channel.send('', embed=e)
         for reaction in ['💙', EMOJI['pokeball']]:
             await thanks_message.add_reaction(reaction.strip('<>'))
+
+    def make_queue_embed(self, mentions=True, cmd=''):
+
+        sections = []
+        if self.group:
+            group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in self.group])
+            sections.append(f'**Current Round**\n{group_text}')
+
+        next_up, wraparound = self.pool.get_next(3, advance=False)
+        group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in next_up])
+        sections.append(f'**Next Round**\n{group_text}')
+
+        lines = [f"{EMOJI['masterball']} " + (f"<@{uid}>" if mentions else self.member_name(uid)) for uid in self.pool.mb]
+        for i, uid in enumerate(self.pool.q):
+            if i == self.pool.i:
+                lines.append(f"{EMOJI['join']} _we are here_")
+            lines.append(f"`{i + 1: >2}` " + (f"<@{uid}>" if mentions else self.member_name(uid)))
+
+        lines = '\n'.join(lines)
+        sections.append(f'**Queue**\n{lines}')
+        description = f'\n{FIELD_BREAK}'.join(sections)
+
+        if cmd == 'q' or cmd == 'queue':
+            description += f'\n{FIELD_BREAK}_Use `.qtext` if names load improperly_'
+
+        footer = ''
+        if cmd == 'queue':
+            footer = '.q for short'
+        elif cmd == 'qtext':
+            footer = '.qt for short'
+
+        e = discord.Embed(title='', description=description).set_footer(text=footer)
+        return e
 
 
     '''
@@ -314,6 +471,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         if ctx.channel != self.channel:
             return await send_message(ctx, f'Please initialize rounds in the actual raid channel.', error=True)
+
+        if self.ffa:
+            return await send_message(ctx, f'Rounds are disabled in FFA raids. The host runs it as they please.', error=True)
 
         code = None
         if arg:
@@ -335,12 +495,19 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
-        self.group, reshuffled = self.pool.get_group(3)
+        self.group, wraparound = self.pool.get_next(3, advance=True)
 
-        pool_text = self.pool.status_as_text(reshuffled)
+        queue_text = ''
+        if wraparound:
+            queue_text = f"{DBL_BREAK}:recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
+
         announcer = random.choice(ANNOUNCE_EMOJI)
         title = f'{announcer} 📣 Round {self.round} Start!'
-        description = f'''The code to join is **{self.code}**! Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to `.kick` `.block` or `.skip` them, using `.<command> <1, 2 or 3>` or `. <action> @name`{DBL_BREAK}{pool_text}{FIELD_BREAK}'''
+
+        description = f'''The code to join is **{self.code}**! Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
+`.skip @user` to skip and replace someone in the current round
+`.remove @user` to remove (and skip) a user from this raid (they **cannot** rejoin!)
+`.block @user` to remove (and skip) a user from **all** of your raids{queue_text}{FIELD_BREAK}'''
         e = discord.Embed(title=title, description=description)  # .set_footer(text='🐑 wooloo.farm')
 
         mention = f'<@{self.host.id}>'
@@ -358,16 +525,24 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             profile = await self.bot.trainers.get_wf_profile(raider_id, ctx)
             profile_info = fc_as_text(profile)
             icon = EMOJI['masterball'] if join_type == 'mb' else EMOJI['pokeball']
-            raider_text = f'{icon} {mention}\n{profile_info}'
+            raider_text = f'{icon} {mention}\n{profile_info}{FIELD_BREAK}'
 
-            if i < len(self.group) - 1:
-                raider_text += FIELD_BREAK
+            # if i < len(self.group) - 1:
+            #     raider_text += FIELD_BREAK
 
-            # numoji = [':one:', ':two:', ':three:'][i]
-            numoji = ['1', '2', '3'][i]
-            e.add_field(name=numoji, value=raider_text, inline=False)
+            e.add_field(name=str(i+1), value=raider_text, inline=False)
 
-        await ctx.send(' '.join(mentions), embed=e)
+        next_up, wraparound = self.pool.get_next(3, advance=False)
+        group_text = '🕑 ' + ' '.join([f'<@{t[1]}>' for t in next_up])
+        e.add_field(name='Next Round', value=group_text, inline=False)
+
+        try:
+            await self.last_round_message.unpin()
+        except Exception:
+            pass
+
+        self.last_round_message = await ctx.send(' '.join(mentions), embed=e)
+        await self.last_round_message.pin()
 
 
     '''
@@ -375,27 +550,33 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     '''
 
     async def skip(self, member, ctx):
-        pass
+        uids = [t[1] for t in self.group]
+        try:
+            to_remove = uids.index(member.id)
+        except ValueError:
+            return await ctx.send(f'There\'s no need to skip {str(member)} as they aren\'t in the current round. Type `.q` to see it.')
+
+        removed = self.group[to_remove]
+        del self.group[to_remove]
+        replacement, wraparound = self.pool.get_next(advance=True)
+        self.group += replacement
+        msg = f"<@{removed[1]}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{removed[1]}>'s place in this round."
+        if wraparound:
+            msg += " :recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
+
+        return await ctx.send(msg)
 
     async def kick(self, member, ctx):
-
         await self.channel.set_permissions(member, read_messages=False)
-
         uid = member.id
-        if uid in self.pool.pb:
-            self.pool.pb.remove(uid)
-        if uid in self.pool.mb:
-            self.pool.mb.remove(uid)
-        if uid in self.pool.queued_until_shuffle:
-            self.pool.queued_until_shuffle.remove(uid)
+        self.pool.remove(uid)
         self.pool.kicked.append(uid)
+        if uid in self.pool.join_history:
+            await member.send(f"Oh no! You were removed from the raid `{self.raid_name}` and cannot rejoin. {EMOJI['flop']}")
+        await ctx.send( f"<@{uid}> has been removed from this raid. They will not be able to see this channel or rejoin. {EMOJI['flop']}")
 
-        await member.send(f"You were kicked from this raid and cannot rejoin. You probably didn't read the rules or were unpleasant. Do better next time.")
-
-        msg = f'<@{uid}> has been kicked from this raid. They will not be able to see this channel or rejoin.'
-        if member.id in [t[1] for t in self.group]:
-            msg += ' They were in the current raid group, so we recommend choosing someone at random to join. We will do this step for you soon.'
-        return await ctx.send(msg)
+        await self.raid.log_channel.send(f'<@{self.host.id}> (or an admin) **kicked** {member.mention} in `{self.channel_name}`')
+        await self.skip(member, ctx)
 
     async def block(self, member, ctx):
         pass
@@ -404,74 +585,78 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     joins/leaves
     '''
 
-    async def add_user(self, user, join_type, reaction):
+    async def add_user(self, user, join_type, payload):
         uid = user.id
         if uid == self.host.id:
             return
 
-        member = self.bot.raid.guild.get_member(uid)
+        member = self.guild.get_member(uid)
         can_raid, err = await self.bot.trainers.can_raid(member, self.host.id)
         if not can_raid:
-            await reaction.message.remove_reaction(reaction, user)
             msg = make_error_msg(err, uid)
             if member:
                 await member.send(msg)
+            await self.bot.misc.remove_raw_reaction(payload, user)
             return
 
-        # todo blocklist / removelist
-
-        if uid in self.pool.kicked:
-            return await member.send(f"You were kicked from this raid and cannot rejoin. You probably didn't read the rules or were unpleasant. Do better next time.")
-
-        if self.pool.size() + 1 >= self.max_joins:
-            return await member.send(f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
+        # todo blocklist
 
         if self.closed:
             return
 
+        if uid in self.pool.kicked:
+            return await member.send(f"Oh no! You were kicked from this raid and cannot rejoin. {EMOJI['flop']}")
+
+        if self.pool.size() + 1 >= self.max_joins:
+            await self.bot.misc.remove_raw_reaction(payload, user)
+            return await member.send(f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
+
+        if uid in self.pool.used_mb:
+            await self.bot.misc.remove_raw_reaction(payload, user)
+            return await member.send(
+                f"You've already joined this raid as a masterball user (which had priority), so you're out of the raid now. It does not matter if you \"missed\" and did not use your masterball.")
+
         if join_type == 'mb':
-            if uid in self.pool.used_mb:
-                return await member.send(f"You've already joined this raid as a masterball user (which gets priority!), so you cannot do so again. It does not matter if you \"missed\" and did not use your masterball. You may re-join as a regular user though, with {EMOJI['pokeball']}!")
+            # if uid in self.pool.used_mb:
+            #     return await member.send(f"You've already joined this raid as a masterball user (which gets priority!), so you cannot do so again. It does not matter if you \"missed\" and did not use your masterball. You may re-join as a regular user though, with {EMOJI['pokeball']}!")
 
             if uid in self.pool.mb:
                 return
 
-            if uid in self.pool.pb:
-                join_type = 'mb+'
+            # if uid in self.pool.q:
+            #     join_type = 'mb+'
 
-            if uid in self.pool.pb:
-                self.pool.pb.remove(uid)
-            if uid in self.pool.queued_until_shuffle:
-                self.pool.queued_until_shuffle.remove(uid)
-
+            self.pool.remove(uid)
             self.pool.used_mb.append(uid)
             self.pool.mb.append(uid)
             await self.send_join_msg(member, join_type)
-            await self.channel.set_permissions(member, send_messages=True)
+            await self.channel.set_permissions(member, send_messages=True, add_reactions=True)
             self.pool.join_history.append(uid)
 
         elif join_type == 'pb':
-            if uid in self.pool.pb or uid in self.pool.mb or uid in self.pool.queued_until_shuffle:
-                await reaction.message.remove_reaction(reaction, user)
+            if uid in self.pool.q or uid in self.pool.mb:
+                await self.bot.misc.remove_raw_reaction(payload, user)
                 return
 
-            self.pool.queued_until_shuffle.append(uid)
+            self.pool.q.append(uid)
             await self.send_join_msg(member, join_type)
-            await self.channel.set_permissions(member, send_messages=True)
+            await self.channel.set_permissions(member, send_messages=True, add_reactions=True)
             self.pool.join_history.append(uid)
 
     async def remove_user(self, user):
         uid = user.id
-        if uid in self.pool.pb:
-            self.pool.pb.remove(uid)
-        if uid in self.pool.mb:
-            self.pool.mb.remove(uid)
-        if uid in self.pool.queued_until_shuffle:
-            self.pool.queued_until_shuffle.remove(uid)
+        removed = self.pool.remove(uid)
+        if not removed:
+            return
+        member = self.guild.get_member(uid)
+        await self.channel.set_permissions(member, overwrite=None)
+        text = ', but you can rejoin at any time.' if uid not in self.pool.used_mb else '. You won\'t be able to rejoin, as you used a masterball.'
 
-        member = self.bot.raid.guild.get_member(uid)
-        await self.channel.set_permissions(member, send_messages=False)
-        await member.send(f'You have left the `{self.raid_name}` raid, but you can rejoin at any time.')
+        profile = await self.bot.trainers.get_wf_profile(self.host.id)
+        profile_info = fc_as_text(profile)
+        raider_text = f'👑 <@{self.host.id}>\n{profile_info}{FIELD_BREAK}'
+        e = discord.Embed(title='Host Details', description=raider_text)
+        await member.send(f'You have left the `{self.raid_name}` raid{text} You **have** to remove the host from your friend list now, even if you plan to continue raiding with them later. Otherwise, you may be blocked or banned from raiding altogether.', embed=e)
 
     async def send_join_msg(self, member, join_type):
 
@@ -480,37 +665,44 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         if join_type == 'pb':
             if member.id not in self.pool.join_history:
-                return await self.channel.send(f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! Please read the **pinned message**.\n{profile_info}{FIELD_BREAK}")
+                return await self.channel.send(f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! Please read the **pinned messages**.\n{profile_info}{FIELD_BREAK}")
             else:
                 return await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!")
 
         elif join_type == 'mb':
             if member.id not in self.pool.join_history:
-                return await self.channel.send(f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them. Please read the **pinned message**.\n{profile_info}{FIELD_BREAK}")
+                return await self.channel.send(f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to block them. Please read the **pinned messages**.\n{profile_info}{FIELD_BREAK}")
             else:
                 return await self.channel.send(
                     f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
 
-        elif join_type == 'mb+':
-            return await self.channel.send(f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
+        # elif join_type == 'mb+':
+        #     return await self.channel.send(f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
 
     async def end(self, immediately=False):
+        if self.closed:
+            if immediately:
+                deleted = self.raid.raids.pop(self.host.id, None)
+                if deleted:
+                    self.destroy()
+                    await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
+            return
         self.closed = True
         await self.channel.trigger_typing()
         await self.channel.edit(name=f'{LOCK_EMOJI}{self.channel_name[1:]}')
         for target, overwrite in self.channel.overwrites.items():
             await self.channel.set_permissions(target, overwrite=None)
 
-        await self.channel.set_permissions(self.bot.raid.guild.default_role, send_messages=False, add_reactions=False)
-        await self.channel.set_permissions(self.bot.raid.guild.me, send_messages=True, add_reactions=True)
+        await self.channel.set_permissions(self.guild.default_role, send_messages=False, add_reactions=False)
+        await self.channel.set_permissions(self.guild.me, send_messages=True, add_reactions=True)
 
         if not immediately:
-            if self.round >= 3 and not immediately:
+            if not immediately and (self.round >= 3 or self.ffa):
                 msg = f'''✨ **Raid Host Complete!**
         
 Thank you for raiding, this channel is now closed!
 
-To thank <@{self.host.id}> for their hard work with hosting, head to <#{self.bot.raid.thanks_channel.id}> and react with a 💙 !
+To thank <@{self.host.id}> for their hard work with hosting, head to <#{self.raid.thanks_channel.id}> and react with a 💙 !
 If you managed to catch one, add in a {EMOJI['pokeball']} !
 
 _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
@@ -518,8 +710,8 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
                 '''
                 this won't work until 3.5
                 overwrites = {
-                    self.bot.raid.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
-                    self.bot.raid.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
+                    self.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
+                    self.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
                 }
                 await self.channel.edit(name=f'{LOCK_EMOJI}{self.channel_name[1:]}', overwrites={})
                 '''
@@ -533,12 +725,40 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
             await self.channel.send(msg)
 
         await self.listing_message.delete()
-
+        await self.send_host_cleanup_message()
         if not immediately:
             await asyncio.sleep(60 * 10)
-        await self.channel.delete()
-        del self.bot.raid.raids[self.host.id]
-        self.destroy()
+        deleted = self.raid.raids.pop(self.host.id, None)
+        if deleted:
+            self.destroy()
+            await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
+
+    async def send_host_cleanup_message(self):
+        lines = []
+        for i, uid in enumerate(self.pool.join_history):
+            profile = await self.bot.trainers.get_wf_profile(uid)
+
+            fc = f"SW-{profile['friend_code']}"
+            switch = profile['switch_name']
+            text = f'''🗺️ FC: `{fc}` / 🎮 Switch Name: **{switch}**'''
+            lines.append(f"`{i + 1: >2}` {text}")
+
+        lines = '\n'.join(lines)
+        text = f'Thank you for hosting!! They _should_ have removed you themselves, but if not here\'s a list of participants to help you clean up your friend list:\n\n{lines}'
+
+        i = 0
+        messages = []
+        while i < 3 and text:
+            messages.append(text[:2000])
+            text = text[2000:]
+            i += 1
+
+        for msg in messages:
+            await self.host.send(msg)
+
+    def member_name(self, uid):
+        return str(self.guild.get_member(uid))
+
 
 class Raid(commands.Cog):
     def __init__(self, bot):
@@ -547,9 +767,12 @@ class Raid(commands.Cog):
         self.cache = {}
 
         self.category = None
+        self.archive = None
         self.guild = None
         self.listing_channel = None
         self.thanks_channel = None
+        self.log_channel = None
+        self.creating_enabled = True
 
         self.raids = {}
 
@@ -565,38 +788,56 @@ class Raid(commands.Cog):
     async def on_ready(self):
         await self.on_load()
 
-    @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        await self.reaction_action('add', reaction, user)
+    # @commands.Cog.listener()
+    # async def on_reaction_add(self, reaction, user):
+    #     await self.reaction_action('add', reaction, user)
+    #
+    # @commands.Cog.listener()
+    # async def on_reaction_remove(self, reaction, user):
+    #     await self.reaction_action('remove', reaction, user)
 
     @commands.Cog.listener()
-    async def on_reaction_remove(self, reaction, user):
-        await self.reaction_action('remove', reaction, user)
+    async def on_raw_reaction_add(self, payload):
+        await self.reaction_action('add', payload)
 
-    async def reaction_action(self, action, reaction, user):
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        await self.reaction_action('remove', payload)
+
+    async def reaction_action(self, action, payload):
         if not self.listing_channel:
             return
 
-        if user.id == self.bot.user.id:
+        if payload.user_id == self.bot.user.id:
             return
 
-        if reaction.message.channel.id != self.listing_channel.id:
+        if payload.channel_id != self.listing_channel.id:
             return
 
-        if str(reaction.emoji) not in [EMOJI['pokeball'], EMOJI['masterball']]:
+        if str(payload.emoji) not in [EMOJI['pokeball'], EMOJI['masterball']]:
             return
 
         raid = None
         for host_id, r in self.raids.items():
-            if r.listing_message.id == reaction.message.id:
+            if r.listing_message.id == payload.message_id:
                 raid = r
 
-        if action == 'add':
-            join_type = 'mb' if str(reaction.emoji) == EMOJI['masterball'] else 'pb'
-            await raid.add_user(user, join_type, reaction)
+        if not raid:
+            return
 
-        elif action == 'remove':
-            await raid.remove_user(user)
+        if raid.no_mb and str(payload.emoji) == EMOJI['masterball']:
+            return
+
+        user = self.bot.get_user(payload.user_id)
+        if not user:
+            return
+
+        if action == 'add':
+            join_type = 'mb' if str(payload.emoji) == EMOJI['masterball'] else 'pb'
+            return await raid.add_user(user, join_type, payload)
+
+        if action == 'remove':
+            return await raid.remove_user(user)
 
     # todo move to admin module
     @commands.command()
@@ -613,79 +854,68 @@ class Raid(commands.Cog):
     host
     '''
 
-    # .host <name>
-    # .host block
-    # .host block <user>
-    # .host unblock <user>
-    # .host <round> <code>
-
     # @commands.has_role('raider')
     @commands.command()
     async def host(self, ctx, *, arg=None):
 
+        if not self.creating_enabled:
+            return await send_message(ctx, 'Creating new raids is temporarily paused (probably pending a bot update, check the bot status channel).', error=True)
+
         if arg is None or 'help' in arg:
-            # todo help message
-            return send_message(ctx, 'todo add help message (you probably want `.host new name "description/instructions go here" max=20`, the instructions and max raiders are optional)')
+            msg = f'''{CREATE_HELP}
+
+_Managing a Raid_
+`.host help` to show these commands
+`.queue` / `.q` to show the current queue in the channel for everyone to see
+`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
+`.skip @user` to skip and replace someone in the current round
+`.remove @user` to remove (and skip) a user from this raid
+`.block @user` to remove (and skip) a user from **all** of your raids
+`.group <msg>` to ping everyone in the current round's group with a message
+`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
+[**NEW**]
+`.pin` to pin your last message
+`.unpin <#>` to unpin a message
+'''
+            return await send_message(ctx, msg)
+
+        if len(self.raids) >= MAXRAIDS:
+            return await send_message(ctx, f'Unfortunately, we already have the maximum number of **{MAXRAIDS}** raids being hosted.', error=True)
 
         uid = ctx.author.id
-        try:
-            cmd, arg = arg.split(' ', 1)
-        except ValueError:
-            cmd = arg
-            arg = None
+        if uid in self.raids:
+            return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
 
-        # .host block <options>
-        # if cmd == 'block' or cmd == 'unblock':
-        #     return await send_message(ctx, f'Blocks coming soon. Tag a raid mod for now.', error=True)
-        #     # return await self.toggle_block(cmd, arg)
+        max_joins = 30
+        m = re.search(r'max=(\d*)', arg)
+        if m:
+            try:
+                max_joins = int(m.group(1))
+            except ValueError:
+                return await send_message(ctx, 'Invalid value for max raiders. Include `max=n` or leave it out for `max=30`', error=True)
+            arg = arg.replace(m.group(0), '')
 
-        # .host new <options>
-        if cmd == 'new':
-            if not arg or 'help' in arg:
-                # todo help message
-                return send_message(ctx, 'todo add help message (you probably want `.host new name "description/instructions go here" max=20`, the instructions and max raiders are optional)')
+        desc = None
+        m = re.search(r'\"(.*)\"', arg, flags=re.DOTALL)
+        if m:
+            desc = m.group(1)
+            arg = arg.replace(m.group(0), '')
 
-            if len(self.raids) >= MAXRAIDS:
-                return await send_message(ctx, f'Unfortunately, we already have the maximum number of **{MAXRAIDS}** raids being hosted.', error=True)
+        no_mb = False
+        if 'no mb' in arg:
+            no_mb = True
+            arg = arg.replace('no mb', '')
 
-            if uid in self.raids:
-                return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
+        name = arg.strip()
+        channel_name = f"{RAID_EMOJI}-{name.replace(' ', '-')}"
 
-            max_joins = 30
-            m = re.search(r'max=(\d*)', arg)
-            if m:
-                try:
-                    max_joins = int(m.group(1))
-                except ValueError:
-                    return await send_message(ctx, 'Invalid value for max raiders. Include `max=n` or leave it out for `max=30`', error=True)
-                arg = arg.replace(m.group(0), '')
+        can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
+        if not can_host:
+            msg = make_error_msg(err, uid)
+            return await send_message(ctx, msg, error=True)
 
-            desc = None
-            m = re.search(r'\"(.*)\"', arg, flags=re.DOTALL)
-            if m:
-                desc = m.group(1)
-                arg = arg.replace(m.group(0), '')
-
-            name = arg.strip()
-            channel_name = f"{RAID_EMOJI}-{name.replace(' ', '-')}"
-
-
-            can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
-            if not can_host:
-                msg = make_error_msg(err, uid)
-                return await send_message(ctx, msg, error=True)
-
-            self.raids[uid] = HostedRaid(self.bot, ctx.author)
-            await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, desc, max_joins)
-
-        # .host round <code>
-        if cmd == 'round':
-            if uid in self.raids:
-                return await self.raids[uid].round_command(ctx, arg)
-
-        if cmd == 'end' or cmd == 'close':
-            if uid in self.raids:
-                return await self.raids[uid].end()
+        self.raids[uid] = HostedRaid(self.bot, self, self.guild, ctx.author)
+        await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, desc, max_joins, no_mb)
 
 
     @host.error
@@ -707,32 +937,51 @@ class Raid(commands.Cog):
             return await self.raids[uid].round_command(ctx, arg)
 
     @commands.command(aliases=['end'])
-    async def close(self, ctx, arg=None):
+    async def close(self, ctx, arg=''):
         uid = ctx.author.id
+        admin = ctx.author.guild_permissions.administrator
         if uid in self.raids:
-            return await self.raids[uid].end()
+            return await self.raids[uid].end(admin and ('immediately' in arg or 'now' in arg))
 
-        user = self.bot.get_user(uid)
-
-        if ctx.author.guild_permissions.administrator:
+        if admin:
             for host_id, raid in self.raids.items():
                 if raid.channel == ctx.channel:
-                    print("admin close")
-                    print("immediately" in arg)
-                    return await raid.end('immediately' in arg)
+                    return await raid.end('immediately' in arg or 'now' in arg)
 
 
     '''
     host moderation
     '''
 
+    @commands.command(name='group')
+    async def group_message(self, ctx, *, arg=None):
+        uid = ctx.author.id
+        if uid not in self.raids:
+            return
+
+        if not arg:
+            return await send_message(ctx, f'Type a message that you\'d like to relay to the current round\'s group.', error=True)
+
+        raid = self.raids[uid]
+        if not raid.group:
+            return await send_message(ctx, 'No active group! Type `.round` to start one.', error=True)
+
+        mentions = []
+        for i, raider in enumerate(raid.group):
+            join_type, raider_id = raider
+            mention = f'<@{raider_id}>'
+            mentions.append(mention)
+
+        msg = f"{' '.join(mentions)} 📣 Message from host:\n{enquote(arg)}"
+        await ctx.send(msg)
+
     @commands.command()
     async def skip(self, ctx, *, arg=None):
         await self.host_moderation(ctx, 'skip', arg)
 
-    @commands.command()
+    @commands.command(aliases=['remove'])
     async def kick(self, ctx, *, arg=None):
-        await self.host_moderation(ctx, 'kick', arg)
+        await self.host_moderation(ctx, 'remove', arg)
 
     @commands.command()
     async def block(self, ctx, *, arg=None):
@@ -746,66 +995,120 @@ class Raid(commands.Cog):
         if not uid in self.raids:
             return
 
-        member = resolve_mention(ctx.message.guild, arg, False)
-        if not member:
-            return await send_user_not_found(ctx, arg)
+        match = idPattern.search(arg)
+        if not match:
+            return await send_message(ctx, f'Please tag the member you\'d like to {action}', error=True)
 
-        if action == 'block' or 'action' == 'skip':
-            await ctx.send(f'`.block` and `.skip` coming soon, but for now we will attempt to `.kick` the user.')
-            action = 'kick'
+        mention_id = int(match.group(1))
+        member = ctx.message.guild.get_member(mention_id)
 
-        if action == 'kick':
+        if action == 'skip':
+            return await self.raids[uid].skip(member, ctx)
+
+        if action == 'remove':
+            return await self.raids[uid].kick(member, ctx)
+
+        if action == 'block':
+            await ctx.send(f'`.block`, but for now we will attempt to `.remove` the user.')
             return await self.raids[uid].kick(member, ctx)
 
 
+    '''
+    pins
+    '''
     @commands.command()
-    async def tt(self, ctx):
-        self.group = []
-        self.round = random.randint(1, 20)
-        self.code = 1234
-        for i in range(3):
-            self.group.append((random.choice(['pb', 'mb']), 340838512834117632))
+    async def pin(self, ctx):
+        uid = ctx.author.id
+        if uid not in self.raids:
+            return
 
-        self.group = [
-            ('mb', 340838512834117632),
-            ('pb', 340838512834117632),
-            ('pb', 340838512834117632),
-        ]
+        raid = self.raids[uid]
+        if raid.channel.id != ctx.channel.id:
+            return await send_message(ctx, f'You may only pin channels in your active raid channel.', error=True)
 
-        announcer = random.choice(ANNOUNCE_EMOJI)
-        title = f'{announcer} 📣 Round {self.round} Start!'
-        description = f'''The code to join is **{self.code}**! Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to `.kick` `.block` or `.skip` them, using `.<command> <1, 2 or 3>` or `.<command> @name`{FIELD_BREAK}'''
-        e = discord.Embed(title=title, description=description) #.set_footer(text='🐑 wooloo.farm')
+        if len(raid.pins) >= 10:
+            return await send_message(ctx, f'For now, you can only `.pin` a total of 10 times (even after `.unpin`ning them). This will be adjusted in the future.', error=True)
 
-        TEMP_HOST_ID = 232650437617123328
-        mention = f'<@{TEMP_HOST_ID}>'
-        profile = await self.bot.trainers.get_wf_profile(TEMP_HOST_ID)
-        profile_info = fc_as_text(profile)
-        icon = '👑'
-        raider_text = f'{icon} {mention}\n{profile_info}{FIELD_BREAK}'
-        e.add_field(name='Host', value=raider_text, inline=False)
+        last_msg = await ctx.channel.history().find(lambda m: m.id != ctx.message.id and m.author == ctx.author)
+        if not last_msg:
+            return await send_message(ctx, f'No message found by you in recent history (~50 messages).', error=True)
 
-        mentions = []
-        for i, raider in enumerate(self.group):
-            join_type, raider_id = raider
-            mention = f'<@{raider_id}>'
-            mentions.append(mention)
-            profile = await self.bot.trainers.get_wf_profile(raider_id, ctx)
-            profile_info = fc_as_text(profile)
-            icon = EMOJI['masterball'] if join_type == 'mb' else EMOJI['pokeball']
-            raider_text = f'{icon} {mention}\n{profile_info}'
+        raid.pins.append(last_msg)
+        await last_msg.pin()
 
-            if i < len(self.group) - 1:
-                raider_text += FIELD_BREAK
+        n = len(raid.pins)
+        await ctx.send(f'Message #**{n}** pinned! To remove it, type `.unpin {n}`.')
 
-            # numoji = [':one:', ':two:', ':three:'][i]
-            numoji = ['1', '2', '3'][i]
-            e.add_field(name=numoji, value=raider_text, inline=False)
+    @commands.command()
+    async def unpin(self, ctx, *, arg=''):
+        uid = ctx.author.id
+        if uid not in self.raids:
+            return
 
-        await ctx.send(' '.join(mentions), embed=e)
+        raid = self.raids[uid]
+        if raid.channel.id != ctx.channel.id:
+            return await send_message(ctx, f'You may only unpin channels in your active raid channel.', error=True)
+
+        if not arg:
+            return await send_message(ctx, f'You may only unpin channels in your active raid channel.', error=True)
+
+        try:
+            n = int(arg) - 1
+            if not (0 <= n < len(raid.pins)):
+                raise ValueError
+        except ValueError:
+            return await send_message(ctx, f'Invalid pin! You must include the number, e.g. `.unpin 3` ', error=True)
+
+        pinned_msg = raid.pins[n]
+        if not pinned_msg:
+            return await send_message(ctx, f'That message no longer exists and could not be unpinned.', error=True)
+
+        await pinned_msg.unpin()
+        raid.pins[n] = None
+
+        await ctx.send(f'Message #**{n+1}** unpinned! This cannot presently be undone.')
+
+
     '''
     misc
     '''
+
+    async def view_queue(self, ctx, text=False):
+        uid = ctx.author.id
+        if uid in self.raids:
+            if self.raids[uid].ffa:
+                return await send_message(ctx, f'There is no queue in FFA mode.', error=True)
+            e = self.raids[uid].make_queue_embed(mentions=not text, cmd=ctx.invoked_with)
+            return await ctx.send('', embed=e)
+
+        for host_id, raid in self.raids.items():
+            if raid.channel == ctx.channel:
+                if raid.ffa:
+                    return await send_message(ctx, f'There is no queue in FFA mode.', error=True)
+                await ctx.message.add_reaction('✅')
+                e = raid.make_queue_embed(mentions=False, cmd=ctx.invoked_with)
+                return await ctx.author.send(raid.raid_name, embed=e)
+
+
+    @commands.command(aliases=['q'])
+    async def queue(self, ctx, arg=''):
+        return await self.view_queue(ctx, False)
+
+    @commands.command(aliases=['qt'])
+    async def qtext(self, ctx, arg=None):
+        return await self.view_queue(ctx, True)
+
+    @commands.command()
+    async def caught(self, ctx, arg=None):
+        description = f' 🎊 ✨ 🍰   {ctx.author.mention} has **caught** the Pokémon!   🍰 ✨ 🎊 '
+        color = random.choice(TYPE_COLORS)
+        e = discord.Embed(description=description, color=color) \
+            .set_author(name=f'Caught!', icon_url=pokeballUrl)
+
+        caught_msg = await ctx.send('', embed=e)
+        for reaction in [':lovehonk:656861100762988567', EMOJI['pokeball']]:
+            await caught_msg.add_reaction(reaction.strip('<>'))
+
 
 
     '''
@@ -852,17 +1155,43 @@ class Raid(commands.Cog):
 
     @checks.is_jacob()
     @commands.command()
-    async def cl(self, ctx, arg=None):
+    async def ca(self, ctx, arg=None):
         await self.clear_channels_dirty()
+
+    @checks.is_jacob()
+    @commands.command()
+    async def pause(self, ctx, arg=None):
+        self.creating_enabled = not self.creating_enabled
+        await ctx.send(f'`creating_enabled = {self.creating_enabled}`')
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def announce(self, ctx, *, arg):
+        if self.category:
+            color = random.choice(TYPE_COLORS)
+            e = discord.Embed(title='Bot Announcement!', description=f'''{EMOJI['honk']} {arg}''', color=color)
+            for channel in self.category.text_channels:
+                if channel.name.startswith(RAID_EMOJI):
+                    await channel.send('', embed=e)
+            await ctx.send('Sent!')
+
+
+    @commands.has_permissions(administrator=True)
+    @commands.command(aliases=['cl'])
+    async def clear(self, ctx):
+        if self.archive:
+            for channel in self.archive.text_channels:
+                if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCK_EMOJI):
+                    await channel.delete()
 
     async def clear_channels_dirty(self):
         if self.category:
             if self.listing_channel:
-                await self.listing_channel.purge(limit=100)
+                await self.listing_channel.purge(limit=100, check=lambda m: m.author == self.bot.user)
 
             for channel in self.category.text_channels:
                 if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCK_EMOJI):
-                    await channel.delete()
+                    await channel.edit(sync_permissions=True, category=self.archive, position=0)
 
     async def make_raid_channel(self, raid, channel_ctx):
         if self.category is None or self.guild is None:
@@ -877,7 +1206,7 @@ class Raid(commands.Cog):
 
         # todo ban list
 
-        topic = 'please read the pinned message before raiding'
+        topic = 'please read the pinned messages before raiding'
         channel = await self.guild.create_text_channel(raid.channel_name, overwrites=overwrites, category=self.category, topic=topic)
         return channel
 
@@ -886,16 +1215,20 @@ class Raid(commands.Cog):
             return False
 
         # cid = 661468408856051733 # test
-        cid = 661425972158922772 # live
+        raid_cid = 661425972158922772 # live
+        archive_cid = 652579764837679145 # live
+
         try:
-            self.category = self.bot.get_channel(cid)
+            self.category = self.bot.get_channel(raid_cid)
+            self.archive = self.bot.get_channel(archive_cid)
             self.guild = self.category.guild
             self.listing_channel = discord.utils.get(self.guild.text_channels, name='active-raids')
             self.thanks_channel = discord.utils.get(self.guild.text_channels, name='raid-thanks')
-            print(f'Bound to {cid}', self.category, self.guild, self.listing_channel)
+            self.log_channel = discord.utils.get(self.guild.text_channels, name='raid-log')
+            print(f'Bound to {raid_cid}', self.category, self.guild, self.listing_channel)
 
         except AttributeError:
-            print(f'Could not bind to {cid}')
+            print(f'Could not bind to {raid_cid}')
             return False
 
         return True
