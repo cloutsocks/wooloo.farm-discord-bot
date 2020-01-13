@@ -38,7 +38,7 @@ def has_guild_permissions(*, check=all, **perms):
 
 def is_jacob():
     def predicate(ctx):
-        return ctx.message.author.id == 232650437617123328
+        return ctx.message.author.id in [232650437617123328, 105072331935727616, 647665702052036628]
     return commands.check(predicate)
 
 

@@ -50,9 +50,9 @@ class WoolooBot(commands.Bot):
                 print(f'Failed to load extension {extension}.', file=sys.stderr)
                 traceback.print_exc()
 
-    def clear_wait_fors(self, member):
-        self.wfr.pop(member.id, None)
-        self.wfm.pop(member.id, None)
+    def clear_wait_fors(self, uid):
+        self.wfr.pop(uid, None)
+        self.wfm.pop(uid, None)
 
 bot = WoolooBot()
 
