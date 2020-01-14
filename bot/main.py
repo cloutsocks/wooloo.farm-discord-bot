@@ -66,9 +66,6 @@ async def on_ready():
     playing = discord.Game(name='with other Wooloo')
     await bot.change_presence(activity=playing)
 
-    # for cog in bot.cogs:
-    #     print(cog)
-
 @bot.event
 async def on_reaction_add(reaction, user):
     if user == bot.user:
@@ -87,17 +84,17 @@ async def on_message(message):
     await bot.process_commands(message)
     uid = message.author.id
     if uid in bot.wfm:
-        data = bot.wfm[uid]
-        if data['channel'] != message.channel:
+        waiter = bot.wfm[uid]
+        if waiter['channel'] != message.channel:
             return
         try:
-            if time.time() > data['expires']:
+            if time.time() > waiter['expires']:
                 del bot.wfm[uid]
                 return
         except KeyError:
             pass
 
-        await data['handler'].handle_message(message)
+        await waiter['handler'].handle_message(message)
 
 
 @bot.command(name='reloadall', aliases=['reall', 'ra'])

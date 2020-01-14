@@ -21,7 +21,6 @@ ENDPOINT = 'https://wooloo.farm'
 
 async def get_user_by_credential(realm, identifier, endpoint=ENDPOINT):
     async with aiohttp.ClientSession() as session:
-        print('fetching')
         r = await session.get(ENDPOINT + '/trainer-by-credential.json',
                               params={'realm': realm, 'identifier': identifier})
         if r.status not in (200, 404):
