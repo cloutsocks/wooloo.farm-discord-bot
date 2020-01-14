@@ -1,0 +1,12 @@
+[Unit]
+Description=wooloobo
+
+[Service]
+User=wooloobot
+EnvironmentFile=/etc/default/wooloobot
+ExecStart=/usr/local/bin/pipenv run python /opt/wooloobot/live/bot/main.py
+WorkingDirectory=/var/lib/wooloobot
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
