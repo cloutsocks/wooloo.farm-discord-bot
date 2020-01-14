@@ -32,6 +32,7 @@ ssh -oControlMaster=yes -oControlPath="${ssh_control_path}" -Nf "${DEPLOY_USER}@
 ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" mkdir -p "/opt/wooloobot/versions/${version}"
 tar cjf - bot systemd Pipfile Pipfile.lock | ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" tar xjf - -C "/opt/wooloobot/versions/${version}"
 ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" ln -sfn "/opt/wooloobot/versions/${version}" /opt/wooloobot/live
+ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" sudo /usr/bin/sudo -u wooloobot -H -i PWD=/var/lib/wooloobot /usr/local/bin/pipenv install
 ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" sudo /bin/systemctl daemon-reload
 ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" sudo /bin/systemctl restart wooloobot
 ssh -oControlMaster=no -oControlPath="${ssh_control_path}" "${DEPLOY_HOST}" find -L /opt/wooloobot/versions -maxdepth 1 -mindepth 1 -not -samefile /opt/wooloobot/live -exec rm -rf \{} +
