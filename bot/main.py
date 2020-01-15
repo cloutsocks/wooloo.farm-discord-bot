@@ -54,7 +54,9 @@ class WoolooBot(commands.Bot):
         self.wfr.pop(uid, None)
         self.wfm.pop(uid, None)
 
+
 bot = WoolooBot()
+bot.help_command = None
 
 # @bot.check
 # async def debug_restrict_jacob(ctx):
