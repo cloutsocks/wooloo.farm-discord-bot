@@ -17,6 +17,7 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pets = 0
+        self.max_pets = 3
 
     async def remove_raw_reaction(self, payload, user=None):
         if not user:
@@ -48,7 +49,7 @@ class Misc(commands.Cog):
 
     @commands.command()
     async def pet(self, ctx):
-        if self.pets > 69:
+        if self.pets > self.max_pets:
             return await ctx.send(f'''_Wooloo is all petted out and sleeping now._ {EMOJI['wooloo']}💤''')
         self.pets += 1
         if random.random() < 0.25:
@@ -57,6 +58,20 @@ class Misc(commands.Cog):
             em = random.choice([EMOJI['flop'], EMOJI['wuwu'], EMOJI['wooloo_fast']])
             msg = f'''{em}💙'''
         await ctx.send(f'{msg} _\\*is pet\\* _ x {self.pets}')
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def maxpets(self, ctx, *, arg):
+        try:
+            self.max_pets = int(arg)
+        except ValueError:
+            return await send_message(ctx, 'Type a number.', error=True)
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def resetpets(self, ctx):
+        self.pets = 0
+        await ctx.send('Done.')
 
     @commands.command()
     async def poll(self, ctx, *, arg):

@@ -26,7 +26,8 @@ CREATE_HELP = '''_Creating a Raid_
 **+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
 **+** _optional:_ `.host <channel name> max=20` to limit raiders
 **+** _optional:_ add `ffa` to `<channel name>` to disable managed queues
-**+** _optional:_ add `no mb` to disable priority masterball raiders'''
+**+** _optional:_ add `no mb` to disable priority masterball raiders
+**+** _optional:_ add `private` to hide the code from lurkers'''
 
 
 def make_readme(desc, active_raids_id):
@@ -76,7 +77,7 @@ _Commands_
 [**NEW**]
 `.max <#>` to adjust max participants
 `.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-
+`.private` to toggle a private raid (hidden codes from lurkers)
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
 {EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
@@ -128,6 +129,7 @@ _Commands_
 [**NEW**]
 `.max <#>` to adjust max participants
 `.lock` to temporarily prevent new raiders from joining (without stopping the raid)
+`.private` to toggle a private raid (hidden codes from lurkers)
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
 {EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
@@ -231,7 +233,7 @@ used_mb {self.used_mb}'''
 
 
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, ffa, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
 
 
 class HostedRaid(object):
@@ -243,6 +245,7 @@ class HostedRaid(object):
 
         self.raid_name = None
         self.ffa = False
+        self.private = False
         self.no_mb = False
         self.channel = None
         self.channel_name = None
@@ -285,6 +288,7 @@ class HostedRaid(object):
                           guild_id=self.guild.id,
                           raid_name=self.raid_name,
                           ffa=self.ffa,
+                          private=self.private,
                           no_mb=self.no_mb,
                           channel_id=self.channel.id,
                           channel_name=self.channel_name,
@@ -325,6 +329,7 @@ class HostedRaid(object):
         self.host_id = r.host_id
         self.raid_name = r.raid_name
         self.ffa = r.ffa
+        self.private = r.private
         self.no_mb = r.no_mb
         self.channel_name = r.channel_name
         self.desc = r.desc
@@ -351,7 +356,7 @@ class HostedRaid(object):
     def destroy(self):
         self.bot.clear_wait_fors(self.host_id)
 
-    async def send_confirm_prompt(self, ctx, raid_name, channel_name, desc=None, max_joins=30, no_mb=False):
+    async def send_confirm_prompt(self, ctx, raid_name, channel_name, desc=None, max_joins=30, private=False, no_mb=False):
         if self.confirmed or self.channel or self.message:
             return
 
@@ -359,10 +364,13 @@ class HostedRaid(object):
         self.channel_name = channel_name
         self.ffa = 'ffa' in self.channel_name.lower()
         self.max_joins = clamp(max_joins, 3, 50 if self.ffa else 30)
+        self.private = private
         self.no_mb = no_mb
         options = []
         if self.ffa:
             options.append('**FFA**')
+        if self.private:
+            options.append('**private** (hidden code)')
         if self.no_mb:
             options.append('**no masterball**')
 
@@ -596,9 +604,10 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         elif self.code:
             code = self.code
         if not code:
-            return await send_message(ctx,
-                                      f'Please choose a valid 4-digit code in the form `.round 1234`. You can re-use this code for subsequent rounds by just typing `.round`',
-                                      error=True)
+            return await send_message(ctx, f'Please choose a valid 4-digit code in the form `.round 1234`. You can re-use this code for subsequent rounds by just typing `.round`', error=True)
+
+        if arg and self.private:
+            await ctx.message.delete()
 
         self.code = code
         await self.new_round(ctx)
@@ -607,9 +616,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         size = self.pool.size()
         if size < 3:
-            return await send_message(ctx,
-                                      f'There are currently **{size}** participants, but You need at least **3** to start a raid.',
-                                      error=True)
+            return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
         self.group, wraparound = self.pool.get_next(3, advance=True)
@@ -621,7 +628,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         announcer = random.choice(ANNOUNCE_EMOJI)
         title = f'{announcer} 📣 Round {self.round} Start!'
 
-        description = f'''The code to join is **{self.code}**! Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
+        if self.private:
+            code_text = f'''The code is hidden by the host! I've DM'd it to the group, but you can also type `.code` to see it (but please don't share it).'''
+        else:
+            code_text = f'The code to join is **{self.code}**!'
+
+        description = f'''{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
 `.skip @user` to skip and replace someone in the current round
 `.remove @user` to remove (and skip) a user from this raid (they **cannot** rejoin!)
 `.block @user` to remove (and skip) a user from **all** of your raids{queue_text}{FIELD_BREAK}'''
@@ -637,6 +649,11 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         mentions = []
         for i, raider in enumerate(self.group):
             join_type, raider_id = raider
+            if self.private:
+                user = self.bot.get_user(raider_id)
+                if user:
+                    await user.send(f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn! But keep in mind you may be skipped, so check on the channel as well.''')
+
             mention = f'<@{raider_id}>'
             mentions.append(mention)
             profile = await self.bot.trainers.get_wf_profile(raider_id, ctx)
@@ -801,6 +818,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         del self.group[to_remove]
         replacement, wraparound = self.pool.get_next(advance=True)
         self.group += replacement
+
+        if self.private:
+            user = self.bot.get_user(replacement[0][1])
+            if user:
+                await user.send( f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn (as a replacement)! But keep in mind you may be skipped, so check on the channel as well.''')
+
         msg = f"<@{removed[1]}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{removed[1]}>'s place in this round."
         if wraparound:
             msg += " :recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
@@ -976,6 +999,7 @@ class Raid(commands.Cog):
             guild_id integer not null,
             raid_name text not null,
             ffa integer not null,
+            private integer not null,
             no_mb integer not null,
             channel_id integer not null,
             channel_name text not null,
@@ -998,6 +1022,7 @@ class Raid(commands.Cog):
             guild_id integer not null,
             raid_name text not null,
             ffa integer not null,
+            private integer not null,
             no_mb integer not null,
             channel_id integer not null,
             channel_name text not null,
@@ -1024,7 +1049,7 @@ class Raid(commands.Cog):
 
         t = time.time()
         c = self.db.cursor()
-        c.execute('select host_id, guild_id, raid_name, ffa, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
+        c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = HostedRaid(self.bot, self, self.guild, r.host_id)
             loaded = await raid.load_from_record(r)
@@ -1052,11 +1077,11 @@ class Raid(commands.Cog):
         c = self.db.cursor()
         c.execute('delete from raids')
         if records:
-            c.executemany('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
+            c.executemany('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
             self.task_n += 1
             if self.task_n == 5:
                 print('[DB] Inserted into history as well.')
-                c.executemany('insert into raid_history values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
+                c.executemany('insert into raid_history values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
                 self.task_n = 0
         else:
             print('[DB] Nothing to save, but deleted old records.')
@@ -1163,6 +1188,7 @@ _Managing a Raid_
 [**NEW**]
 `.max <#>` to adjust max participants
 `.lock` to temporarily prevent new raiders from joining (without stopping the raid)
+`.private` to toggle a private raid (hidden codes from lurkers)
 '''
             return await send_message(ctx, msg)
 
@@ -1192,6 +1218,11 @@ _Managing a Raid_
             desc = m.group(1)
             arg = arg.replace(m.group(0), '')
 
+        private = False
+        if 'private' in arg:
+            private = True
+            arg = arg.replace('private', '')
+
         no_mb = False
         if 'no mb' in arg:
             no_mb = True
@@ -1207,7 +1238,7 @@ _Managing a Raid_
 
         self.raids[uid] = HostedRaid(self.bot, self, self.guild, ctx.author.id)
         print('[Raid Creation]', self.raids)
-        await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, desc, max_joins, no_mb)
+        await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, desc, max_joins, private, no_mb)
 
     @host.error
     async def host_error(self, ctx, error):
@@ -1356,6 +1387,26 @@ _Managing a Raid_
 
         await ctx.send(msg)
 
+    @commands.command()
+    async def private(self, ctx):
+        uid = ctx.author.id
+        if uid not in self.raids:
+            return
+
+        raid = self.raids[uid]
+        if raid.channel != ctx.channel:
+            return await send_message(ctx, f'You may only do this in your active raid channel.', error=True)
+
+        raid.private = not raid.private
+
+        if raid.private:
+            raid.code = None
+            msg = 'Raid is now **private**, which means the `.code` will be hidden. I\'ve removed the old one, so please set a secret one in the form `.code 1234`. If you\'ve pinned it, you might want to `.unpin` it. Type `.private` again to toggle.'
+        else:
+            msg = f'''Raid is no longer private, which means the code is public again (it's **{raid.code}**). Type `.private` again to toggle.'''
+
+        await ctx.send(msg)
+
     '''
     pins
     '''
@@ -1453,6 +1504,59 @@ _Managing a Raid_
         caught_msg = await ctx.send('', embed=e)
         for reaction in [':lovehonk:656861100762988567', EMOJI['pokeball']]:
             await caught_msg.add_reaction(reaction.strip('<>'))
+
+    @commands.command()
+    async def code(self, ctx, arg=None):
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+
+                if not arg or not is_host:
+                    if not raid.code:
+                        if is_host:
+                            return await send_message(ctx, '''You haven't set a code yet. Please choose a valid 4-digit code in the form `.code 1234`''', error=True)
+                        else:
+                            return await send_message(ctx, 'The code hasn\'t been set by the host.', error=True)
+
+                    if not is_host:
+                        msg = f'The code for `{raid.raid_name}` is currently **{raid.code}**. The host may change this later on, keep an eye out.'
+                        if raid.private:
+                            msg += ' Since this is a private raid, please do not share the code openly (to hide it from lurkers).'
+                        await ctx.message.add_reaction('✅')
+                        return await ctx.author.send(msg)
+
+                error = False
+                code = None
+                if arg:
+                    m = re.search(r'\d\d\d\d', arg)
+                    if m:
+                        code = m.group(0)
+                    else:
+                        error = True
+
+                if not code:
+                    msg = ''
+                    if raid.code:
+                        msg = f'The code is currently set to **{raid.code}**, but you can change it with `.code 1234` using any valid 4-digit number.'
+                    else:
+                        msg = f'''You haven't set a code yet. Please choose a valid 4-digit code in the form `.code 1234`'''
+
+                    if raid.private:
+                        await ctx.message.add_reaction(ICON_CLOSE if error else '✅')
+                        return await ctx.author.send(msg)
+
+                    return await send_message(ctx, msg, error=True)
+
+                raid.code = code
+                if raid.private:
+                    await ctx.message.delete()
+                    msg = '''The code has been **updated**. Participants will have to get the new one by typing `.code` when it's their turn. I'll also send a DM if there's a queue. Since this is a private raid, please do not share the code openly (to hide it from lurkers).'''
+                else:
+                    msg = f'''The code has been updated to **{raid.code}**.'''
+
+                return await ctx.send(msg)
+
+        return await send_message(ctx, 'You can only do this in an active raid channel.', error=True)
 
     @commands.command()
     async def leave(self, ctx, arg=None):
