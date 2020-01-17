@@ -29,6 +29,23 @@ CREATE_HELP = '''_Creating a Raid_
 **+** _optional:_ add `no mb` to disable priority masterball raiders
 **+** _optional:_ add `private` to hide the code from lurkers'''
 
+HOST_COMMANDS = '''`.host help` to show these commands
+`.fc <@user>` to display FC / IGN / Switch Name
+`.queue` / `.q` to show the current queue in the channel for everyone to see
+`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
+`.skip @user` to skip and replace someone in the current round
+`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
+`.block @user` to remove (and skip) a user from **all** of your raids
+`.group <msg>` to ping everyone in the current round's group with a message
+`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
+`.pin` to pin your last message
+`.unpin <#>` to unpin a message
+[**NEW**]
+`.max <#>` to adjust max participants
+`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
+`.private` to toggle a private raid (hidden codes from lurkers)
+`.qfc` show the current queue WITH fc / switch name'''
+
 
 def make_readme(desc, active_raids_id):
     notice = f"\n\nThe host expects everyone to know the following: _{enquote(desc)}_" if desc else ""
@@ -63,21 +80,7 @@ _Commands_
             f'''
 **For Hosts**
 _Commands_
-`.host help` to show these commands
-`.fc <@user>` to display FC / IGN / Switch Name
-`.queue` / `.q` to show the current queue in the channel for everyone to see
-`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
-`.skip @user` to skip and replace someone in the current round
-`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids
-`.group <msg>` to ping everyone in the current round's group with a message
-`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
-`.pin` to pin your last message
-`.unpin <#>` to unpin a message
-[**NEW**]
-`.max <#>` to adjust max participants
-`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-`.private` to toggle a private raid (hidden codes from lurkers)
+{HOST_COMMANDS}
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
 {EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
@@ -117,19 +120,7 @@ _Commands_
             f'''
 **For Hosts**
 _Commands_
-`.host help` to show these commands
-`.fc <@user>` to display FC / IGN / Switch Name
-`.queue` / `.q` to show the current queue in the channel for everyone to see
-`.skip @user` to skip and replace someone in the current round
-`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids
-`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
-`.pin` to pin your last message
-`.unpin <#>` to unpin a message
-[**NEW**]
-`.max <#>` to adjust max participants
-`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-`.private` to toggle a private raid (hidden codes from lurkers)
+{HOST_COMMANDS}
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
 {EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
@@ -919,7 +910,7 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
 
             fc = f"SW-{profile['friend_code']}"
             switch = profile['switch_name']
-            text = f'''🗺️ FC: `{fc}` / ✨ Discord: {self.member_name(uid)} / 🎮 Switch Name: **{switch}**'''
+            text = f'''🗺️ FC: `{fc}` / {EMOJI['discord']}  **{self.member_name(uid)}** / 🎮 Switch Name: **{switch}**'''
             lines.append(f"`{i + 1: >2}` {text}\n")
 
         # lines = '\n'.join(lines)
@@ -1175,20 +1166,7 @@ class Raid(commands.Cog):
             msg = f'''{CREATE_HELP}
 
 _Managing a Raid_
-`.host help` to show these commands
-`.queue` / `.q` to show the current queue in the channel for everyone to see
-`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
-`.skip @user` to skip and replace someone in the current round
-`.remove @user` to remove (and skip) a user from this raid
-`.block @user` to remove (and skip) a user from **all** of your raids
-`.group <msg>` to ping everyone in the current round's group with a message
-`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
-`.pin` to pin your last message
-`.unpin <#>` to unpin a message
-[**NEW**]
-`.max <#>` to adjust max participants
-`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-`.private` to toggle a private raid (hidden codes from lurkers)
+{HOST_COMMANDS}
 '''
             return await send_message(ctx, msg)
 
@@ -1490,9 +1468,43 @@ _Managing a Raid_
     async def queue(self, ctx, arg=''):
         return await self.view_queue(ctx, False)
 
-    @commands.command(aliases=['qt'])
-    async def qtext(self, ctx, arg=None):
+    @commands.command(name='qtext', aliases=['qt'])
+    async def queue_text(self, ctx, arg=''):
         return await self.view_queue(ctx, True)
+
+    @commands.command(name='qfc', aliases=['queuefc'])
+    async def queue_fc(self, ctx, arg=''):
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+                admin = ctx.author.guild_permissions.administrator
+
+                if not admin and not is_host:
+                    return await send_message(ctx, 'Host or admin only. Use `.q` instead.', error=True)
+
+                lines = []
+                for i, uid in enumerate(raid.pool.q):
+                    profile = await self.bot.trainers.get_wf_profile(uid)
+
+                    fc = f"SW-{profile['friend_code']}"
+                    switch = profile['switch_name']
+                    text = f'''🗺️ FC: `{fc}` / {EMOJI['discord']}  **{raid.member_name(uid)}** / 🎮 Switch Name: **{switch}**'''
+                    lines.append(f"`{i + 1: >2}` {text}\n")
+
+                messages = []
+                msg = f'**Active Raider Profiles**\n\n'
+                for line in lines:
+                    if len(msg) + len(line) < 2000:
+                        msg += line
+                    else:
+                        messages.append(msg)
+                        msg = line
+
+                messages.append(msg)
+                for msg in messages:
+                    await ctx.send(msg)
+
+                return
 
     @commands.command(aliases=['catch'])
     async def caught(self, ctx, arg=None):
@@ -1641,6 +1653,7 @@ _Managing a Raid_
     @commands.has_permissions(administrator=True)
     @commands.command()
     async def announce(self, ctx, *, arg):
+
         if not self.category:
             return
 

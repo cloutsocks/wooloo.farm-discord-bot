@@ -84,10 +84,10 @@ class Misc(commands.Cog):
         for reaction in emoji:
             await msg.add_reaction(reaction.strip('<> '))
 
-    # @commands.command()
-    # @checks.is_jacob()
-    # async def say(self, ctx, *, arg):
-    #     await ctx.send(arg)
+    @commands.command()
+    @checks.is_jacob()
+    async def say(self, ctx, *, arg):
+        await ctx.send(arg)
 
 
 
