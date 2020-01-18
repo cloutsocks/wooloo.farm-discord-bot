@@ -37,12 +37,11 @@ class Misc(commands.Cog):
         # todo fix this
         reaction = msg.reactions[0]
         users = await reaction.users().flatten()
-        winners = []
-        # todo random.sample()
-        while users and len(winners) < n:
-            winner = random.choice(users)
-            users.remove(winner)
-            winners.append(winner)
+        if len(users) <= n:
+            # everyone is a winner!
+            winners = users
+        else:
+            winners = random.sample(users, n)
 
         names = ', '.join([str(winner) for winner in winners])
         mentions = ' '.join([str(winner.mention) for winner in winners])
