@@ -99,24 +99,34 @@ async def on_message(message):
         await waiter['handler'].handle_message(message)
 
 
-@bot.command(name='reloadall', aliases=['reall', 'ra'])
-@checks.is_jacob()
-async def _reloadall(ctx, arg=None):
-    """Reloads all modules."""
-
-    bot.wfm = {}
-    bot.wfr = {}
-    try:
-        for extension in initial_extensions:
-            bot.unload_extension(extension)
-            bot.load_extension(extension)
-    except Exception as e:
-        await ctx.send(f'```py\n{traceback.format_exc()}\n```')
-    else:
-        await ctx.send('✅')
+# Read from an auxiliary config file if WOOLOOBOT_ENV_CONFIG is set, otherwise
+# construct the state from environment variables.
+if not os.environ.get('WOOLOOBOT_ENV_CONFIG', False):
+    with open('../config/discord_app.json') as f:
+        config = json.load(f)
+else:
+    config = {'token': os.environ.get('WOOLOOBOT_TOKEN')}
 
 
-with open('../config/discord_app.json') as f:
-    config = json.load(f)
+# In production, WOOLOOBOT_DISABLE_HOT_RELOAD should be set to True, as
+# hot code reloading will often result in inconsistent in-memory state if the
+# reloaded code is not sufficiently aware that it is reloadable (e.g. does not
+# account for old/new data layouts).
+if not os.environ.get('WOOLOOBOT_DISABLE_HOT_RELOAD', False):
+    @bot.command(name='reloadall', aliases=['reall', 'ra'])
+    @checks.is_jacob()
+    async def _reloadall(ctx, arg=None):
+        """Reloads all modules."""
+
+        bot.wfm = {}
+        bot.wfr = {}
+        try:
+            for extension in initial_extensions:
+                bot.unload_extension(extension)
+                bot.load_extension(extension)
+        except Exception as e:
+            await ctx.send(f'```py\n{traceback.format_exc()}\n```')
+        else:
+            await ctx.send('✅')
 
 bot.run(config['token'])

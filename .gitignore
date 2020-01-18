@@ -1,4 +1,4 @@
-raid.db
+*.db
 
 scraps/
 dev_build/

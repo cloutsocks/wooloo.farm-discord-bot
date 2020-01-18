@@ -7,13 +7,6 @@ verify_ssl = true
 
 [packages]
 discord-py = "*"
-numpy = "*"
-scipy = "*"
-matplotlib = "*"
-ipython = "*"
-jupyter = "*"
-pandas = "*"
-sympy = "*"
 nose = "*"
 aiohttp = "*"
 

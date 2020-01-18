@@ -1043,9 +1043,9 @@ class Raid(commands.Cog):
         c.close()
 
     async def load_raids_from_db(self):
-        print(f'[DB] Attempting to load raids...')
+        # print(f'[DB] Attempting to load raids...')
         if self.raids:
-            print('[ERROR] `self.raids` already exists, should be empty')
+            print('[DB ERROR] `self.raids` already exists, should be empty')
 
         t = time.time()
         c = self.db.cursor()
@@ -1075,8 +1075,8 @@ class Raid(commands.Cog):
         print(f'[DB] Loaded {len(self.raids)} raids from database. Took {time.time() - t:.3f} seconds')
 
     def save_raids_to_db(self):
-        print(f'[DB] Attempting to save raids...')
-        t = time.time()
+        # print(f'[DB] Attempting to save raids...')
+        # t = time.time()
         records = [raid.as_record() for raid in self.raids.values() if raid.should_serialize()]
         c = self.db.cursor()
         c.execute('delete from raids')
@@ -1088,10 +1088,11 @@ class Raid(commands.Cog):
                 c.executemany('insert into raid_history values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
                 self.task_n = 0
         else:
-            print('[DB] Nothing to save, but deleted old records.')
+            pass
+            # print('[DB] Nothing to save, but deleted old records.')
         self.db.commit()
         c.close()
-        print(f'[DB] Saved {len(records)} raids to database. Took {time.time() - t:.3f} seconds')
+        # print(f'[DB] Saved {len(records)} raids to database. Took {time.time() - t:.3f} seconds')
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -1101,7 +1102,6 @@ class Raid(commands.Cog):
     async def save_interval(self):
         # print('[Task] Periodic Save')
         self.save_raids_to_db()
-
 
     # @commands.Cog.listener()
     # async def on_reaction_add(self, reaction, user):

@@ -7,7 +7,6 @@ import discord
 import copy
 import difflib
 
-from numpy import interp
 from discord.ext import commands
 
 idPattern = re.compile(r'<@!?(\d+?)>')
