@@ -34,9 +34,11 @@ class Misc(commands.Cog):
     async def raffle(self, ctx, n:int, msg_id:int, channel_id:int = 663479080192049172):
         channel = self.bot.get_channel(channel_id)
         msg = await channel.fetch_message(msg_id)
-        reaction = sorted(msg.reactions)[0]
+        # todo fix this
+        reaction = msg.reactions[0]
         users = await reaction.users().flatten()
         winners = []
+        # todo random.sample()
         while users and len(winners) < n:
             winner = random.choice(users)
             users.remove(winner)
@@ -66,12 +68,19 @@ class Misc(commands.Cog):
             self.max_pets = int(arg)
         except ValueError:
             return await send_message(ctx, 'Type a number.', error=True)
+        await ctx.message.add_reaction('✅')
 
     @commands.has_permissions(administrator=True)
     @commands.command()
     async def resetpets(self, ctx):
         self.pets = 0
         await ctx.send('Done.')
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def gohome(self, ctx):
+        await self.bot.get_channel(652367800912052244).send(f'''pls remember to move off topic chat to <#649042720458932234> ! so we can keep this channel about raiding {EMOJI['flop']}''')
+        await ctx.message.add_reaction('✅')
 
     @commands.command()
     async def poll(self, ctx, *, arg):
@@ -86,9 +95,14 @@ class Misc(commands.Cog):
 
     @commands.command()
     @checks.is_jacob()
-    async def say(self, ctx, *, arg):
+    async def repeat(self, ctx, *, arg):
         await ctx.send(arg)
 
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def say(self, ctx, channel:discord.TextChannel, *, arg):
+        await channel.send(arg)
+        await ctx.message.add_reaction('✅')
 
 
 def setup(bot):

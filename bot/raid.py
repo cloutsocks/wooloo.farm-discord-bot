@@ -131,11 +131,11 @@ _Commands_
 
 def make_error_msg(err, uid):
     if err == 'WF_NO_ACCOUNT':
-        msg = 'You do not have a linked profile on http://wooloo.farm/ ! In order to raid, you must link a discord account with your 🗺️ **friend code**, ✨ **in-game name**, and 🎮 **switch name**. This allows others to quickly add or verify you during a chaotic raid.'
+        msg = 'You do not have a linked profile on http://wooloo.farm/ ! In order to raid, you must link a **public** (not marked private) discord account with your 🗺️ **friend code**, ✨ **in-game name**, and 🎮 **switch name**. This allows others to quickly add or verify you during a chaotic raid.'
 
     elif err.startswith('WF_NOT_SET'):
         key = err.split(': ')[1]
-        msg = f'Your {key} is not set on http://wooloo.farm/profile/edit , please update it accordingly. In order to raid, you must link a discord account with your 🗺️ **friend code**, ✨ **in-game name**, and 🎮 **switch name**. This allows others to quickly add or verify you during a chaotic raid.'
+        msg = f'Your {key} is not set on http://wooloo.farm/profile/edit , please update it accordingly. In order to raid, you must link a **public** (not marked private) discord account with your 🗺️ **friend code**, ✨ **in-game name**, and 🎮 **switch name**. This allows others to quickly add or verify you during a chaotic raid.'
 
     elif err.startswith('WF_NO_IGN'):
         msg = f'Your in-game name is not set on http://wooloo.farm/profile/edit , please update it accordingly. This is the trainer name that appears in-game. If you own both games, both can be stored.'
@@ -248,7 +248,7 @@ class HostedRaid(object):
         self.round = 0
         self.max_joins = 30
         self.pool = None
-        self.group = None
+        self.group = []
 
         self.start_time = None
         self.time_saved = None
@@ -271,25 +271,25 @@ class HostedRaid(object):
     serialize
     '''
 
-    def as_record(self):
-        if self.message or not self.confirmed:
-            return None
+    def should_serialize(self):
+        return self.message is None and self.confirmed
 
+    def as_record(self):
         return RaidRecord(host_id=self.host_id,
                           guild_id=self.guild.id,
                           raid_name=self.raid_name,
                           ffa=self.ffa,
                           private=self.private,
                           no_mb=self.no_mb,
-                          channel_id=self.channel.id,
+                          channel_id=self.channel.id if self.channel else None,
                           channel_name=self.channel_name,
                           desc=self.desc,
                           listing_msg_id=self.listing_message.id if self.listing_message else None,
                           last_round_msg_id=self.last_round_message.id if self.last_round_message else None,
                           round=self.round,
                           max_joins=self.max_joins,
-                          pool=json.dumps(self.pool.__dict__),
-                          raid_group=json.dumps(self.group),
+                          pool=json.dumps(self.pool.__dict__) if self.pool else None,
+                          raid_group=json.dumps(self.group) if self.group else None,
                           start_time=self.start_time,
                           time_saved=int(time.time()),
                           code=self.code,
@@ -298,21 +298,27 @@ class HostedRaid(object):
 
     async def load_from_record(self, r):
 
-        err = f'[ABORT] Could not create raid {r.raid_name}'
+        err_prefix = f'[ABORT] Could not create raid {r.raid_name}'
         self.channel = self.bot.get_channel(r.channel_id)
         if not self.channel:
-            print(f'{err}: channel {r.channel_id} not found')
-            return False
+            err = f'{err_prefix}: channel {r.channel_id} not found'
+            return False, err
 
         # todo move to category if need be?
 
         try:
             self.listing_message = await self.raid.listing_channel.fetch_message(r.listing_msg_id)
+        except (discord.Forbidden, discord.NotFound, discord.HTTPException) as e:
+            err = f'{err_prefix}: could not fetch listing message {r.listing_msg_id}. Error: {type(e).__name__}, {e}'
+            return False, err
+
+        try:
             if r.last_round_msg_id:
                 self.last_round_message = await self.channel.fetch_message(r.last_round_msg_id)
         except (discord.Forbidden, discord.NotFound, discord.HTTPException) as e:
-            print(f'{err}: could not fetch message. Error: {type(e).__name__}, {e}')
-            return False
+            err = f'{err_prefix}: could not fetch last round message {r.last_round_msg_id}. Error: {type(e).__name__}, {e}'
+            return False, err
+
 
         # todo tony method
         self.pins = []
@@ -328,8 +334,9 @@ class HostedRaid(object):
         self.round = r.round
         self.max_joins = r.max_joins
         self.pool = RaidPool()
-        self.pool.__dict__ = json.loads(r.pool)
-        self.group = json.loads(r.raid_group)
+        if r.pool:
+            self.pool.__dict__ = json.loads(r.pool)
+        self.group = json.loads(r.raid_group) if r.raid_group else []
 
         self.start_time = r.start_time
         self.time_saved = r.time_saved
@@ -338,7 +345,7 @@ class HostedRaid(object):
         self.confirmed = True
         self.closed = r.closed
 
-        return True
+        return True, None
 
     '''
     creation
@@ -774,17 +781,19 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         profile = await self.bot.trainers.get_wf_profile(member.id)
         profile_info = fc_as_text(profile)
 
+        pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
+
         if join_type == 'pb':
             if member.id not in self.pool.join_history:
                 return await self.channel.send(
-                    f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! Please read the **pinned messages**.\n{profile_info}{FIELD_BREAK}")
+                    f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! {pls_read}\n{profile_info}{FIELD_BREAK}")
             else:
                 return await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!")
 
         elif join_type == 'mb':
             if member.id not in self.pool.join_history:
                 return await self.channel.send(
-                    f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to block them. Please read the **pinned messages**.\n{profile_info}{FIELD_BREAK}")
+                    f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to block them. {pls_read}\n{profile_info}{FIELD_BREAK}")
             else:
                 return await self.channel.send(
                     f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
@@ -1003,7 +1012,7 @@ class Raid(commands.Cog):
             raid_group text,
             start_time integer not null,
             time_saved integer,
-            code integer,
+            code text,
             locked integer not null,
             closed integer not null,
             primary key(host_id)
@@ -1026,7 +1035,7 @@ class Raid(commands.Cog):
             raid_group text,
             start_time integer not null,
             time_saved integer,
-            code integer,
+            code text,
             locked integer not null,
             closed integer not null
         )''')
@@ -1043,9 +1052,13 @@ class Raid(commands.Cog):
         c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = HostedRaid(self.bot, self, self.guild, r.host_id)
-            loaded = await raid.load_from_record(r)
+            loaded, err = await raid.load_from_record(r)
+            print('raid:', raid)
+            print(raid.as_record())
             if not loaded:
-                print(f'Did not succesfully load {r.raid_name}')
+                print(f'Did not succesfully load {r.raid_name}, error: {err}')
+                if raid.channel and not raid.closed:
+                    await raid.channel.send(f'❌ During a bot restart, this raid failed to load and will have to be remade. This is likely a Discord issue, but let <@232650437617123328> know. The following error occured:\n\n```{err}```')
             else:
                 self.raids[raid.host_id] = raid
                 print(f'Succesfully loaded {r.raid_name}')
@@ -1064,7 +1077,7 @@ class Raid(commands.Cog):
     def save_raids_to_db(self):
         print(f'[DB] Attempting to save raids...')
         t = time.time()
-        records = [raid.as_record() for raid in self.raids.values()]
+        records = [raid.as_record() for raid in self.raids.values() if raid.should_serialize()]
         c = self.db.cursor()
         c.execute('delete from raids')
         if records:
@@ -1086,7 +1099,7 @@ class Raid(commands.Cog):
 
     @tasks.loop(minutes=3.0)
     async def save_interval(self):
-        print('[Task] Periodic Save')
+        # print('[Task] Periodic Save')
         self.save_raids_to_db()
 
 
@@ -1109,6 +1122,7 @@ class Raid(commands.Cog):
             await self.reaction_action('remove', payload)
 
     async def reaction_action(self, action, payload):
+
         if not self.listing_channel:
             return
 
@@ -1292,9 +1306,14 @@ _Managing a Raid_
         if not arg:
             return
 
-        uid = ctx.author.id
-        if uid not in self.raids:
-            return
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+                admin = ctx.author.guild_permissions.administrator
+
+                if not admin and not is_host:
+                    return await send_message(ctx, 'Host or admin only. Use `.q` instead.', error=True)
+                break
 
         match = idPattern.search(arg)
         if not match:
@@ -1307,14 +1326,14 @@ _Managing a Raid_
                                       error=True)
 
         if action == 'skip':
-            return await self.raids[uid].skip(member, ctx)
+            return await raid.skip(member, ctx)
 
         if action == 'remove':
-            return await self.raids[uid].kick(member, ctx)
+            return await raid.kick(member, ctx)
 
         if action == 'block':
-            await ctx.send(f'`.block`, but for now we will attempt to `.remove` the user.')
-            return await self.raids[uid].kick(member, ctx)
+            await ctx.send(f'`.block` is not yet implemented, but for now we will attempt to `.remove` the user.')
+            return await raid.kick(member, ctx)
 
     @commands.command()
     async def max(self, ctx, *, arg=''):
@@ -1683,6 +1702,21 @@ _Managing a Raid_
             msg = await self.breakroom.send('', embed=e)
             for reaction in emoji:
                 await msg.add_reaction(reaction.strip('<> '))
+        await ctx.send('Sent!')
+
+    @commands.has_permissions(administrator=True)
+    @commands.command()
+    async def raidsay(self, ctx, *, arg):
+
+        if not self.category:
+            return
+
+        msg = arg
+        for channel in self.category.text_channels:
+            if channel.name.startswith(RAID_EMOJI):
+                await channel.send(msg)
+        if self.breakroom:
+            await self.breakroom.send(msg)
         await ctx.send('Sent!')
 
     @commands.has_permissions(administrator=True)
