@@ -1082,11 +1082,11 @@ class Raid(commands.Cog):
         c.execute('delete from raids')
         if records:
             c.executemany('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
-            self.task_n += 1
-            if self.task_n == 5:
-                print('[DB] Inserted into history as well.')
-                c.executemany('insert into raid_history values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
-                self.task_n = 0
+            # self.task_n += 1
+            # if self.task_n == 5:
+            #     print('[DB] Inserted into history as well.')
+            #     c.executemany('insert into raid_history values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
+            #     self.task_n = 0
         else:
             pass
             # print('[DB] Nothing to save, but deleted old records.')
