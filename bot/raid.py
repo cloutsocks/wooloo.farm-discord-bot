@@ -683,31 +683,32 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         can_raid, err = await self.bot.trainers.can_raid(member, self.host_id)
         if not can_raid:
             msg = make_error_msg(err, uid)
-            if member:
-                await member.send(msg)
+            await member.send(msg)
             await self.bot.misc.remove_raw_reaction(payload, user)
             return
 
         # todo blocklist
 
-        if self.closed:
-            return
+        admin = member.guild_permissions.administrator
+        if not admin:
+            if self.closed:
+                return
 
-        if uid in self.pool.kicked:
-            return await member.send(f"Oh no! You were kicked from this raid and cannot rejoin. {EMOJI['flop']}")
+            if uid in self.pool.kicked:
+                return await member.send(f"Oh no! You were kicked from this raid and cannot rejoin. {EMOJI['flop']}")
 
-        if self.locked:
-            return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
+            if self.locked:
+                return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
 
-        if self.pool.size() + 1 >= self.max_joins:
-            await self.bot.misc.remove_raw_reaction(payload, user)
-            return await member.send(
-                f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
+            if self.pool.size() + 1 >= self.max_joins:
+                await self.bot.misc.remove_raw_reaction(payload, user)
+                return await member.send(
+                    f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
 
-        if uid in self.pool.used_mb:
-            await self.bot.misc.remove_raw_reaction(payload, user)
-            return await member.send(
-                f"You've already joined this raid as a masterball user (which had priority), so you're out of the raid now. It does not matter if you \"missed\" and did not use your masterball.")
+            if uid in self.pool.used_mb:
+                await self.bot.misc.remove_raw_reaction(payload, user)
+                return await member.send(
+                    f"You've already joined this raid as a masterball user (which had priority), so you're out of the raid now. It does not matter if you \"missed\" and did not use your masterball.")
 
         if join_type == 'mb':
             # if uid in self.pool.used_mb:
