@@ -1548,7 +1548,8 @@ _Managing a Raid_
                         msg = f'The code for `{raid.raid_name}` is currently **{raid.code}**. The host may change this later on, keep an eye out.'
                         if raid.private:
                             msg += ' Since this is a private raid, please do not share the code openly (to hide it from lurkers).'
-                        await ctx.message.add_reaction('✅')
+                        # await ctx.message.add_reaction('✅')
+                        await ctx.message.delete()
                         return await ctx.author.send(msg)
 
                 error = False
