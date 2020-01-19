@@ -161,16 +161,6 @@ class RaidPool(object):
         self.join_history = []
         self.kicked = []
 
-        # self.q = [340838512834117632] * 30
-        # self.join_history = [340838512834117632] * 30
-
-        # self.i = 0
-        # self.q = [340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632]
-        # self.mb = [340838512834117632, 340838512834117632]
-        # self.used_mb = []
-        # self.join_history = [340838512834117632, 474971416358551554, 257574610004869120, 232650437617123328]
-        # self.kicked = []
-
     def size(self):
         return len(self.mb) + len(self.q)
 
@@ -1306,6 +1296,7 @@ _Managing a Raid_
         if not arg:
             return
 
+        target_raid = None
         for host_id, raid in self.raids.items():
             if raid and raid.channel == ctx.channel:
                 is_host = ctx.author.id == host_id
@@ -1313,7 +1304,11 @@ _Managing a Raid_
 
                 if not admin and not is_host:
                     return await send_message(ctx, 'Host or admin only. Use `.q` instead.', error=True)
+                target_raid = raid
                 break
+
+        if not target_raid:
+            return
 
         match = idPattern.search(arg)
         if not match:
@@ -1326,14 +1321,14 @@ _Managing a Raid_
                                       error=True)
 
         if action == 'skip':
-            return await raid.skip(member, ctx)
+            return await target_raid.skip(member, ctx)
 
         if action == 'remove':
-            return await raid.kick(member, ctx)
+            return await target_raid.kick(member, ctx)
 
         if action == 'block':
             await ctx.send(f'`.block` is not yet implemented, but for now we will attempt to `.remove` the user.')
-            return await raid.kick(member, ctx)
+            return await target_raid.kick(member, ctx)
 
     @commands.command()
     async def max(self, ctx, *, arg=''):
