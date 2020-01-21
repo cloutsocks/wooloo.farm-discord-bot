@@ -161,16 +161,6 @@ class RaidPool(object):
         self.join_history = []
         self.kicked = []
 
-        # self.q = [340838512834117632] * 30
-        # self.join_history = [340838512834117632] * 30
-
-        # self.i = 0
-        # self.q = [340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632, 340838512834117632]
-        # self.mb = [340838512834117632, 340838512834117632]
-        # self.used_mb = []
-        # self.join_history = [340838512834117632, 474971416358551554, 257574610004869120, 232650437617123328]
-        # self.kicked = []
-
     def size(self):
         return len(self.mb) + len(self.q)
 
@@ -693,31 +683,32 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         can_raid, err = await self.bot.trainers.can_raid(member, self.host_id)
         if not can_raid:
             msg = make_error_msg(err, uid)
-            if member:
-                await member.send(msg)
+            await member.send(msg)
             await self.bot.misc.remove_raw_reaction(payload, user)
             return
 
         # todo blocklist
 
-        if self.closed:
-            return
+        admin = member.guild_permissions.administrator
+        if not admin:
+            if self.closed:
+                return
 
-        if uid in self.pool.kicked:
-            return await member.send(f"Oh no! You were kicked from this raid and cannot rejoin. {EMOJI['flop']}")
+            if uid in self.pool.kicked:
+                return await member.send(f"Oh no! You were kicked from this raid and cannot rejoin. {EMOJI['flop']}")
 
-        if self.locked:
-            return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
+            if self.locked:
+                return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
 
-        if self.pool.size() + 1 >= self.max_joins:
-            await self.bot.misc.remove_raw_reaction(payload, user)
-            return await member.send(
-                f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
+            if self.pool.size() + 1 >= self.max_joins:
+                await self.bot.misc.remove_raw_reaction(payload, user)
+                return await member.send(
+                    f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
 
-        if uid in self.pool.used_mb:
-            await self.bot.misc.remove_raw_reaction(payload, user)
-            return await member.send(
-                f"You've already joined this raid as a masterball user (which had priority), so you're out of the raid now. It does not matter if you \"missed\" and did not use your masterball.")
+            if uid in self.pool.used_mb:
+                await self.bot.misc.remove_raw_reaction(payload, user)
+                return await member.send(
+                    f"You've already joined this raid as a masterball user (which had priority), so you're out of the raid now. It does not matter if you \"missed\" and did not use your masterball.")
 
         if join_type == 'mb':
             # if uid in self.pool.used_mb:
@@ -1306,6 +1297,7 @@ _Managing a Raid_
         if not arg:
             return
 
+        target_raid = None
         for host_id, raid in self.raids.items():
             if raid and raid.channel == ctx.channel:
                 is_host = ctx.author.id == host_id
@@ -1313,7 +1305,11 @@ _Managing a Raid_
 
                 if not admin and not is_host:
                     return await send_message(ctx, 'Host or admin only. Use `.q` instead.', error=True)
+                target_raid = raid
                 break
+
+        if not target_raid:
+            return
 
         match = idPattern.search(arg)
         if not match:
@@ -1326,14 +1322,14 @@ _Managing a Raid_
                                       error=True)
 
         if action == 'skip':
-            return await raid.skip(member, ctx)
+            return await target_raid.skip(member, ctx)
 
         if action == 'remove':
-            return await raid.kick(member, ctx)
+            return await target_raid.kick(member, ctx)
 
         if action == 'block':
             await ctx.send(f'`.block` is not yet implemented, but for now we will attempt to `.remove` the user.')
-            return await raid.kick(member, ctx)
+            return await target_raid.kick(member, ctx)
 
     @commands.command()
     async def max(self, ctx, *, arg=''):
@@ -1553,7 +1549,8 @@ _Managing a Raid_
                         msg = f'The code for `{raid.raid_name}` is currently **{raid.code}**. The host may change this later on, keep an eye out.'
                         if raid.private:
                             msg += ' Since this is a private raid, please do not share the code openly (to hide it from lurkers).'
-                        await ctx.message.add_reaction('✅')
+                        # await ctx.message.add_reaction('✅')
+                        await ctx.message.delete()
                         return await ctx.author.send(msg)
 
                 error = False
