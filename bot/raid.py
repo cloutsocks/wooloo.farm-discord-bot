@@ -152,6 +152,9 @@ def make_error_msg(err, uid):
     return f"<@{uid}> {msg} {EMOJI['flop']}"
 
 
+def show_member_for_log(member):
+    return f"<@{member.id}> ({member.name}#{member.discriminator}, ID: {member.id}, Nickname: {member.nick})"
+
 class RaidPool(object):
     def __init__(self):
         self.i = 0
@@ -411,6 +414,8 @@ Are you sure you want to continue?
 
         self.pool = RaidPool()
         self.group = []
+
+        await self.raid.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) has created a new raid: {self.raid_name}.")
 
         self.channel = await self.raid.make_raid_channel(self, channel_ctx)
 
@@ -774,17 +779,19 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         if join_type == 'pb':
             if member.id not in self.pool.join_history:
-                return await self.channel.send(
+                await self.raid.log_channel.send(f"{show_member_for_log(member)} has joined raid {self.raid_name}.\n{profile_info}")
+                await self.channel.send(
                     f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! {pls_read}\n{profile_info}{FIELD_BREAK}")
             else:
-                return await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!")
+                await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!")
 
         elif join_type == 'mb':
             if member.id not in self.pool.join_history:
-                return await self.channel.send(
+                await self.raid.log_channel.send(f"{show_member_for_log(member)} has joined raid {self.raid_name} **with a master ball**.\n{profile_info}")
+                await self.channel.send(
                     f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to block them. {pls_read}\n{profile_info}{FIELD_BREAK}")
             else:
-                return await self.channel.send(
+                await self.channel.send(
                     f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
 
         # elif join_type == 'mb+':
@@ -831,7 +838,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             f"<@{uid}> has been removed from this raid. They will not be able to see this channel or rejoin. {EMOJI['flop']}")
 
         await self.raid.log_channel.send(
-            f'<@{self.host_id}> (or an admin) **kicked** {member.mention} in `{self.channel_name}`')
+            f'<@{self.host_id}> (ID: {self.host_id}) (or an admin) **kicked** {show_member_for_log(member)} in `{self.channel_name}`')
         await self.skip(member, ctx)
 
     async def block(self, member, ctx):
