@@ -4,7 +4,7 @@ Description=wooloobo
 [Service]
 User=wooloobot
 EnvironmentFile=/etc/default/wooloobot
-ExecStart=/usr/local/bin/pipenv run python /opt/wooloobot/live/bot/main.py
+ExecStart=/usr/local/bin/pipenv run python -u /opt/wooloobot/live/bot/main.py
 WorkingDirectory=/var/lib/wooloobot
 Restart=always
 
