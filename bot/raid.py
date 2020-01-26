@@ -277,12 +277,11 @@ class HostedRaid(object):
     serialize
     '''
 
-    async def should_serialize(self):
-        return self.wfr_message is None and self.confirmed and self.channel
-
     async def as_record(self):
 
         async with self.lock:
+            should_serialize = self.wfr_message is None and self.confirmed and self.channel
+
             return RaidRecord(host_id=self.host_id,
                               guild_id=self.guild.id,
                               raid_name=self.raid_name,
@@ -302,7 +301,7 @@ class HostedRaid(object):
                               time_saved=int(time.time()),
                               code=self.code,
                               locked=self.locked,
-                              closed=self.closed)
+                              closed=self.closed), should_serialize
 
     async def load_from_record(self, r):
 
@@ -363,48 +362,50 @@ class HostedRaid(object):
         self.bot.clear_wait_fors(self.host_id)
 
     async def send_confirm_prompt(self, ctx, raid_name, channel_name, desc=None, max_joins=30, private=False, no_mb=False, locked=False):
-        if self.confirmed or self.channel or self.wfr_message:
-            return
 
-        self.raid_name = raid_name
-        self.channel_name = channel_name
-        self.ffa = 'ffa' in self.channel_name.lower()
-        self.max_joins = clamp(max_joins, 3, 50 if self.ffa else 30)
-        self.private = private
-        self.no_mb = no_mb
-        self.locked = locked
-        options = []
-        if self.ffa:
-            options.append('**FFA**')
-        if self.private:
-            options.append('**private** (hidden code)')
-        if self.no_mb:
-            options.append('**no masterball**')
-        if self.locked:
-            options.append('🔒 **locked**')
+        async with self.lock:
+            if self.confirmed or self.channel or self.wfr_message:
+                return
 
-        if options:
-            options = (', '.join(options)) + ' '
-        else:
-            options = ''
+            self.raid_name = raid_name
+            self.channel_name = channel_name
+            self.ffa = 'ffa' in self.channel_name.lower()
+            self.max_joins = clamp(max_joins, 3, 50 if self.ffa else 30)
+            self.private = private
+            self.no_mb = no_mb
+            self.locked = locked
+            options = []
+            if self.ffa:
+                options.append('**FFA**')
+            if self.private:
+                options.append('**private** (hidden code)')
+            if self.no_mb:
+                options.append('**no masterball**')
+            if self.locked:
+                options.append('🔒 **locked**')
 
-        if not desc:
-            msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
-            
-{CREATE_HELP}'''
-        else:
-            self.desc = desc
-            msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
-            
-Are you sure you want to continue?
+            if options:
+                options = (', '.join(options)) + ' '
+            else:
+                options = ''
 
-{CREATE_HELP}'''
+            if not desc:
+                msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
+                
+    {CREATE_HELP}'''
+            else:
+                self.desc = desc
+                msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
+                
+    Are you sure you want to continue?
+    
+    {CREATE_HELP}'''
 
-        self.wfr_message = await ctx.send(msg)
-        for reaction in ['✅', ICON_CLOSE]:
-            await self.wfr_message.add_reaction(reaction.strip('<>'))
+            self.wfr_message = await ctx.send(msg)
+            for reaction in ['✅', ICON_CLOSE]:
+                await self.wfr_message.add_reaction(reaction.strip('<>'))
 
-        self.bot.wfr[self.host_id] = self
+            self.bot.wfr[self.host_id] = self
 
     async def handle_reaction(self, reaction, user):
         if not self.confirmed:
@@ -461,8 +462,11 @@ Are you sure you want to continue?
             await self.make_listing_message()
 
         print('[Raid Confirmation]', self.raid.raids)
-        await self.raid.save_raids_to_db()
+        self.bot.loop.create_task(self.save_raids_to_db())
 
+    '''
+    self.lock must be held before calling - via confirm_and_create()
+    '''
     async def make_listing_message(self):
         profile = await self.bot.trainers.get_wf_profile(self.host_id)
         games = []
@@ -873,10 +877,11 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         return await ctx.send(msg)
 
     async def kick(self, member, ctx):
-        await self.channel.set_permissions(member, read_messages=False)
-        uid = member.id
 
         async with self.lock:
+            await self.channel.set_permissions(member, read_messages=False)
+            uid = member.id
+
             self.pool.remove(uid)
             self.pool.kicked.append(uid)
 
@@ -894,12 +899,15 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         pass
 
     async def end(self, immediately=False):
-        if self.closed:
+        async with self.lock:
+            was_closed = self.closed
+            self.closed = True
+
+        if was_closed:
             if immediately:
                 await self.archive()
             return
 
-        self.closed = True
         await self.channel.trigger_typing()
         overwrites = {
             self.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
@@ -936,14 +944,16 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
         await self.archive()
 
     async def archive(self):
-        deleted = self.raid.raids.pop(self.host_id, None)
-        if deleted:
-            self.destroy()
-            await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
-            await self.raid.save_raids_to_db()
-            # workaround for discord sync unreliable
-            await asyncio.sleep(10)
-            await self.channel.edit(sync_permissions=True)
+
+        async with self.lock:
+            deleted = self.raid.raids.pop(self.host_id, None)
+            if deleted:
+                self.destroy()
+                await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
+                await self.raid.save_raids_to_db()
+                # workaround for discord sync unreliable
+                await asyncio.sleep(10)
+                await self.channel.edit(sync_permissions=True)
 
     async def send_host_cleanup_message(self):
         lines = []
@@ -1114,23 +1124,16 @@ class Raid(commands.Cog):
     async def save_raids_to_db(self):
         # print(f'[DB] Attempting to save raids...')
         # t = time.time()
-        records = [await raid.as_record() for raid in self.raids.values() if await raid.should_serialize()]
+        to_serialize = [await raid.as_record() for raid in self.raids.values()]
         c = self.db.cursor()
         c.execute('delete from raids')
-        if records:
-            for record in records:
+        for record, should_serialize in to_serialize:
+            if should_serialize:
                 try:
                     c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
                 except sqlite3.Error as e:
                     err = f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}'
-            # self.task_n += 1
-            # if self.task_n == 5:
-            #     print('[DB] Inserted into history as well.')
-            #     c.executemany('insert into raid_history values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
-            #     self.task_n = 0
-        else:
-            pass
-            # print('[DB] Nothing to save, but deleted old records.')
+
         self.db.commit()
         c.close()
         # print(f'[DB] Saved {len(records)} raids to database. Took {time.time() - t:.3f} seconds')
