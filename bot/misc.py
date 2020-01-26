@@ -46,7 +46,7 @@ class Misc(commands.Cog):
         names = ', '.join([str(winner) for winner in winners])
         mentions = ' '.join([str(winner.mention) for winner in winners])
 
-        await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\n```{mentions}```')
+        await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```\`\`\`{mentions}\`\`\````')
 
     @commands.command()
     async def pet(self, ctx):

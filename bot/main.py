@@ -73,7 +73,7 @@ async def on_reaction_add(reaction, user):
     if user == bot.user:
         return
 
-    if user.id in bot.wfr and bot.wfr[user.id].message.id == reaction.message.id:
+    if user.id in bot.wfr and bot.wfr[user.id].wfr_message.id == reaction.message.id:
         await bot.wfr[user.id].handle_reaction(reaction, user)
         await reaction.message.remove_reaction(reaction, user)
 
