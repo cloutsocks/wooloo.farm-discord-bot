@@ -462,7 +462,7 @@ class HostedRaid(object):
             await self.make_listing_message()
 
         print('[Raid Confirmation]', self.raid.raids)
-        self.bot.loop.create_task(self.save_raids_to_db())
+        self.bot.loop.create_task(self.raid.save_raids_to_db())
 
     '''
     self.lock must be held before calling - via confirm_and_create()
@@ -1834,11 +1834,11 @@ _Managing a Raid_
         if not self.bot.is_ready():
             return False
 
-        # raids_cid = 661468408856051733 # test
-        # archive_cid = 666527061673771030 # test
+        raids_cid = 661468408856051733 # test
+        archive_cid = 666527061673771030 # test
 
-        raids_cid = 661425972158922772  # live
-        archive_cid = 652579764837679145  # live
+        # raids_cid = 661425972158922772  # live
+        # archive_cid = 652579764837679145  # live
 
         try:
             self.category = self.bot.get_channel(raids_cid)
