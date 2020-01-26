@@ -733,7 +733,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
 
-            if self.pool.size() + 1 >= self.max_joins:
+            if self.pool.size() >= self.max_joins:
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return await member.send(
                     f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
@@ -756,11 +756,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                 self.pool.remove(uid)
                 self.pool.used_mb.append(uid)
                 self.pool.mb.append(uid)
-                if uid not in self.pool.join_history:
-                    self.pool.join_history.append(uid)
 
                 await self.send_join_msg(member, join_type)
                 await self.channel.set_permissions(member, send_messages=True, add_reactions=True)
+
+                if uid not in self.pool.join_history:
+                    self.pool.join_history.append(uid)
 
                 if self.channel_emoji != LOCKED_EMOJI and self.pool.size() >= self.max_joins:
                     self.channel_emoji = LOCKED_EMOJI
@@ -772,11 +773,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                     return
 
                 self.pool.q.append(uid)
-                if uid not in self.pool.join_history:
-                    self.pool.join_history.append(uid)
 
                 await self.send_join_msg(member, join_type)
                 await self.channel.set_permissions(member, send_messages=True, add_reactions=True)
+
+                if uid not in self.pool.join_history:
+                    self.pool.join_history.append(uid)
 
                 if self.channel_emoji != LOCKED_EMOJI and self.pool.size() >= self.max_joins:
                     self.channel_emoji = LOCKED_EMOJI
