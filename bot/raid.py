@@ -1425,9 +1425,18 @@ _Managing a Raid_
         if raid.max_joins == n:
             return await send_message(ctx, f'That\'s... already the max.', error=True)
 
+        # todo lock
         verb = 'increased' if raid.max_joins < n else 'decreased'
         raid.max_joins = n
         await ctx.send(f'Max participants {verb} to **{n}**.')
+
+        if raid.channel_emoji != LOCKED_EMOJI and raid.pool.size() >= raid.max_joins:
+            raid.channel_emoji = LOCKED_EMOJI
+            await raid.channel.edit(name=f'{LOCKED_EMOJI}{raid.channel_name[1:]}')
+
+        elif raid.channel_emoji == LOCKED_EMOJI and raid.pool.size() < raid.max_joins:
+            raid.channel_emoji = RAID_EMOJI
+            await raid.channel.edit(name=f'{RAID_EMOJI}{raid.channel_name[1:]}')
 
     @commands.command()
     async def lock(self, ctx):
