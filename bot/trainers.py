@@ -44,7 +44,7 @@ def has_raid_info(profile):
     return True, None
 
 
-def ign_as_text(profile):
+def ign_as_text(profile, delimeter='\n'):
     text = '✨ **IGN**: Not Set!'
     if not profile or 'games' not in profile:
         return text
@@ -59,7 +59,7 @@ def ign_as_text(profile):
     if not games:
         return text
 
-    return '\n'.join(games)
+    return delimeter.join(games)
 
 
 def fc_as_text(profile):

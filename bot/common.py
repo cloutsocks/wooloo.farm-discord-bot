@@ -11,8 +11,6 @@ from discord.ext import commands
 
 idPattern = re.compile(r'<@!?(\d+?)>')
 
-ICON_ATTACK = '⚔'
-ICON_CLOSE = '❌'
 ERROR_RED = 0xD32F2F
 INFO_BLUE = 0x3579f0
 
@@ -52,11 +50,12 @@ EMOJI = {
     'join': '<:memberjoin:663542559573803043>',
     'pin_unread': '<:pinunread:663544333210746902>',
 
-    'pokeball': '<:pb:662385068613828628>',
-    'masterball': '<:mb:662385068097929228>',
     'skip': '<:skip:662385111060185088>',
 
+    'pokeball': '<:pb:671080407613177934>',
+    'masterball': '<:mb:671080396339019798>',
     'check': '<:checkfilled:663544333374586900>',
+    'check_empty': '<:checkempty:663544333613531136>'
 }
 
 ANNOUNCE_EMOJI = ['<:wuwu:650913724068134923>',

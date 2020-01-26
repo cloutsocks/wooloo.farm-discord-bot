@@ -29,7 +29,9 @@ def command_prefixes(bot, message):
     return ['.']
 
 
-# https://discordapp.com/api/oauth2/authorize?client_id=660980949231599646&permissions=2146827601&scope=bot
+# live https://discordapp.com/api/oauth2/authorize?client_id=660980949231599646&permissions=2146827601&scope=bot
+# dev  https://discordapp.com/api/oauth2/authorize?client_id=668968686094123030&permissions=2146827601&scope=bot
+
 class WoolooBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=command_prefixes)
