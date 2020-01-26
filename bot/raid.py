@@ -1126,19 +1126,23 @@ class Raid(commands.Cog):
     async def save_raids_to_db(self):
         # print(f'[DB] Attempting to save raids...')
         # t = time.time()
+        print('[DB] Starting saving raids to DB.')
         to_serialize = [await raid.as_record() for raid in self.raids.values()]
         c = self.db.cursor()
         c.execute('delete from raids')
         for record, should_serialize in to_serialize:
             if should_serialize:
+                print(f'[DB] Saving record {record} to database')
                 try:
                     c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
                 except sqlite3.Error as e:
                     err = f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}'
+            else:
+                print(f'[DB] Skipped saving record {record}')
 
         self.db.commit()
         c.close()
-        # print(f'[DB] Saved {len(records)} raids to database. Took {time.time() - t:.3f} seconds')
+        print('[DB] Save complete.')
 
     @commands.Cog.listener()
     async def on_ready(self):
