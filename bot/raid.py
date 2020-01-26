@@ -1834,11 +1834,11 @@ _Managing a Raid_
         if not self.bot.is_ready():
             return False
 
-        raids_cid = 661468408856051733 # test
-        archive_cid = 666527061673771030 # test
+        # raids_cid = 661468408856051733 # test
+        # archive_cid = 666527061673771030 # test
 
-        # raids_cid = 661425972158922772  # live
-        # archive_cid = 652579764837679145  # live
+        raids_cid = 661425972158922772  # live
+        archive_cid = 652579764837679145  # live
 
         try:
             self.category = self.bot.get_channel(raids_cid)
