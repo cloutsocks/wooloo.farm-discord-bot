@@ -44,8 +44,8 @@ EMOJI = {
     'wooloo_fast': '<a:wooloofast:652220524138725376>',
     'discord': '<:discord:667446753003307008>',
 
-    'sword': '<:sword:662369277411721246>',
-    'shield': '<:shield:662369277457989635>',
+    'sword': '<:pkmnsw:667062399345491998>',
+    'shield': '<:pkmnsh:667062399089770521>',
 
     'join': '<:memberjoin:663542559573803043>',
     'pin_unread': '<:pinunread:663544333210746902>',
