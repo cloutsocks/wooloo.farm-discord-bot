@@ -1134,7 +1134,7 @@ class Raid(commands.Cog):
             try:
                 record, can_save = await raid.as_record()
             except Exception as e:
-                print(f'[Raid Serialize] Could not serialize raid {record.raid_name}; this will be lost! Error: {type(e).__name__}, {e}')
+                print(f'[Raid Serialize] Could not serialize raid {raid.name}; this will be lost! Error: {type(e).__name__}, {e}')
                 continue
 
             if not can_save:
