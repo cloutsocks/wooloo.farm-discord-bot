@@ -280,7 +280,7 @@ class HostedRaid(object):
     async def as_record(self):
 
         async with self.lock:
-            should_serialize = self.wfr_message is None and self.confirmed and self.channel
+            can_save = self.wfr_message is None and self.confirmed and self.channel
 
             return RaidRecord(host_id=self.host_id,
                               guild_id=self.guild.id,
@@ -301,7 +301,7 @@ class HostedRaid(object):
                               time_saved=int(time.time()),
                               code=self.code,
                               locked=self.locked,
-                              closed=self.closed), should_serialize
+                              closed=self.closed), can_save
 
     async def load_from_record(self, r):
 
@@ -1128,18 +1128,24 @@ class Raid(commands.Cog):
         # print(f'[DB] Attempting to save raids...')
         # t = time.time()
         print('[DB] Starting saving raids to DB.')
-        to_serialize = [await raid.as_record() for raid in self.raids.values()]
         c = self.db.cursor()
         c.execute('delete from raids')
-        for record, should_serialize in to_serialize:
-            if should_serialize:
-                print(f'[DB] Saving record {record} to database')
-                try:
-                    c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
-                except sqlite3.Error as e:
-                    print(f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}')
-            else:
+        for raid in self.raids.values():
+            try:
+                record, can_save = await raid.as_record()
+            except Exception as e:
+                print(f'[Raid Serialize] Could not serialize raid {record.raid_name}; this will be lost! Error: {type(e).__name__}, {e}')
+                continue
+
+            if not can_save:
                 print(f'[DB] Skipped saving record {record}')
+                continue
+
+            print(f'[DB] Saving record {record} to database')
+            try:
+                c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
+            except sqlite3.Error as e:
+                print(f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}')
 
         self.db.commit()
         c.close()
