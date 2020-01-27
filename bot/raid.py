@@ -391,14 +391,14 @@ class HostedRaid(object):
 
             if not desc:
                 msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
-                
+
     {CREATE_HELP}'''
             else:
                 self.desc = desc
                 msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
-                
+
     Are you sure you want to continue?
-    
+
     {CREATE_HELP}'''
 
             self.wfr_message = await ctx.send(msg)
@@ -487,7 +487,7 @@ class HostedRaid(object):
         if self.ffa:
             reactions = [EMOJI['pokeball']]
             instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool! This is an **FFA** raid (there is no bot-managed queue).
-            
+
 Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
         # queue, no masterballs
         elif self.no_mb:
@@ -921,7 +921,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         if not immediately:
             if not immediately and (self.round >= 3 or self.ffa):
                 msg = f'''✨ **Raid Host Complete!**
-        
+
 Thank you for raiding, this channel is now closed!
 
 To thank <@{self.host_id}> for their hard work with hosting, head to <#{self.raid.thanks_channel.id}> and react with a 💙 !
@@ -932,7 +932,7 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
                 await self.make_thanks_post()
             else:
                 msg = f'''✨ **Raid Host Complete!**
-    
+
 Thank you for raiding, this channel is now closed! We won't make a "thanks" post since it was such a short one (in case it was a mistake or so).
 
 _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
@@ -946,6 +946,7 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
         await self.archive()
 
     async def archive(self):
+        print(f'[Raid Archive] Archiving {self}')
 
         async with self.lock:
             deleted = self.raid.raids.pop(self.host_id, None)
@@ -1136,7 +1137,7 @@ class Raid(commands.Cog):
                 try:
                     c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
                 except sqlite3.Error as e:
-                    err = f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}'
+                    print(f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}')
             else:
                 print(f'[DB] Skipped saving record {record}')
 
@@ -1150,7 +1151,7 @@ class Raid(commands.Cog):
 
     @tasks.loop(minutes=3.0)
     async def save_interval(self):
-        # print('[Task] Periodic Save')
+        print('[Task] Periodic Save')
         await self.save_raids_to_db()
 
     # @commands.Cog.listener()
@@ -1296,6 +1297,7 @@ _Managing a Raid_
             print_error(ctx, error)
 
     async def cancel_before_confirm(self, raid, channel, msg=''):
+        print(f'[Raid Cancel] {self} was cancelled before it was confirmed.')
         del self.raids[raid.host_id]
         raid.destroy()
         await channel.send(f"<@{raid.host_id}> {msg}Your raid was cancelled. {EMOJI['flop']}")
