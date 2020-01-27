@@ -52,7 +52,7 @@ HOST_COMMANDS = '''`.host help` to show these commands
 `.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
 '''
 
-RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host remake it from scratch. We're exploring possible options to handle this more gracefully.'''
+RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
 
 def make_readme(desc, active_raids_id):
     notice = f"\n\nThe host expects everyone to know the following: _{enquote(desc)}_" if desc else ""
@@ -1778,7 +1778,7 @@ _Managing a Raid_
         if url:
             e.set_image(url=url)
         for channel in self.category.text_channels:
-            if channel.name.startswith(RAID_EMOJI):
+            if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCKED_EMOJI):
                 msg = await channel.send('', embed=e)
                 for reaction in emoji:
                     await msg.add_reaction(reaction.strip('<> '))
@@ -1797,7 +1797,7 @@ _Managing a Raid_
 
         msg = arg
         for channel in self.category.text_channels:
-            if channel.name.startswith(RAID_EMOJI):
+            if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCKED_EMOJI):
                 await channel.send(msg)
         if self.breakroom:
             await self.breakroom.send(msg)
