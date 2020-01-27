@@ -1183,7 +1183,12 @@ class Raid(commands.Cog):
         if payload.channel_id != self.listing_channel.id:
             return
 
+        user = self.bot.get_user(payload.user_id)
+        if not user:
+            return
+
         if str(payload.emoji) not in [EMOJI['pokeball'], EMOJI['masterball']]:
+            await self.bot.misc.remove_raw_reaction(payload, user)
             return
 
         target_raid = None
@@ -1196,10 +1201,6 @@ class Raid(commands.Cog):
             return
 
         if target_raid.no_mb and str(payload.emoji) == EMOJI['masterball']:
-            return
-
-        user = self.bot.get_user(payload.user_id)
-        if not user:
             return
 
         if action == 'add':
