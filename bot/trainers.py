@@ -1,17 +1,12 @@
+import time
 from collections import namedtuple
 
 import aiohttp
 import discord
-import random
-import math
-import gzip
-import json
-import time
-import secrets
-
-from common import idPattern, send_message, resolve_mention, send_user_not_found, \
-    EMOJI, TYPE_COLORS, DBL_BREAK, INFO_BLUE
 from discord.ext import commands
+
+from common import send_message, resolve_mention, send_user_not_found, \
+    EMOJI, DBL_BREAK
 
 CardRecord = namedtuple('CardRecord',
                         'discord_id, discord_name, fc, ign, switch_name, title_1, title_2, pkmn_icon, color, img, quote')

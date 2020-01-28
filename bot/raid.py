@@ -1,19 +1,19 @@
-import json
-import logging
-import sqlite3
-import discord
-import random
-import time
-import re
 import asyncio
-
-import checks
-
-from common import clamp, idPattern, send_message, print_error, resolve_mention, send_user_not_found, \
-    pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, ICON_CLOSE, enquote
-from discord.ext import tasks, commands
+import json
+import os
+import random
+import re
+import sqlite3
+import time
 from collections import namedtuple
 
+import discord
+from discord.ext import tasks, commands
+
+import checks
+import texts
+from common import clamp, idPattern, send_message, print_error, pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, \
+    ANNOUNCE_EMOJI, ICON_CLOSE, enquote
 from trainers import ign_as_text, fc_as_text
 
 MAXRAIDS = 10
@@ -23,142 +23,7 @@ LOCKED_EMOJI = '🔒'
 CLOSED_EMOJI = '💤'
 
 DEFAULT, LOCKED, CLOSED = 1, 2, 3
-
-CREATE_HELP = '''_Creating a Raid_
-`.host <channel name>`
-**+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
-**+** _optional:_ `.host <channel name> max=20` to limit raiders
-**+** _optional:_ add `ffa` to `<channel name>` to disable managed queues
-**+** _optional:_ add `no mb` to disable priority masterball raiders
-**+** _optional:_ add `private` to hide the code from lurkers
-**+** _optional:_ add `locked` lock the raid until you unlock with `.lock`'''
-
-HOST_COMMANDS = '''`.host help` to show these commands
-`.fc <@user>` to display FC / IGN / Switch Name
-`.queue` / `.q` to show the current queue in the channel for everyone to see
-`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
-`.skip @user` to skip and replace someone in the current round
-`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids
-`.group <msg>` to ping everyone in the current round's group with a message
-`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
-`.pin` to pin your last message
-`.unpin <#>` to unpin a message
-`.max <#>` to adjust max participants
-`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-`.private` to toggle a private raid (hidden codes from lurkers)
-`.qfc` show the current queue WITH fc / switch name
-[**NEW**]
-`.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
-'''
-
-RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
-
-def make_readme(desc, active_raids_id):
-    notice = f"\n\nThe host expects everyone to know the following: _{enquote(desc)}_" if desc else ""
-
-    # todo message limit
-    return [f'''{EMOJI["wooloo"]} **Everyone, Read This Carefully** {EMOJI["wooloo"]}
-
-I help manage raids! Everyone gets a turn in the order they joined, with {EMOJI["masterball"]} getting priority. Even if you don't catch it, it still counts as a turn. But don't worry! Once we cycle through everyone, we start the queue over.{notice}
-''',
-
-            f'''
-**For Participants**
-_Commands_
-`.queue` / `.q` to have the current queue DM'd to you
-`.caught` to indicate you've caught the Pokémon
-`.code` to view the code (if set)
-`.leave` to leave the raid
-
-{EMOJI['check']} **1**)  if you don't follow instructions, you might get kicked or blocked by the host
-{EMOJI['check']} **2**)  enter this raid by visiting <#{active_raids_id}>
-{EMOJI['check']} **3**)  do not join until instructed to do so by the bot
-{EMOJI['check']} **4**)  don't ask the host to join, for their friend code, or what the raid code is—**i'll tell you all of that when it's your turn** {EMOJI["flop"]}
-{EMOJI['check']} **5**)  when you're done raiding, you **have** to leave the raid by **unclicking** the {EMOJI["pokeball"]} or {EMOJI["masterball"]} in <#{active_raids_id}> or by typing `.leave`
-{EMOJI['check']} **6**)  you must also **remove the host from your friend's list**, even if you intend to raid with them again later!
-{EMOJI['check']} **7**)  **you can rejoin** at any time (unless you've used a {EMOJI["masterball"]})
-{EMOJI['check']} **8**)  hosts are completely free to remove users for **any reason whatsoever, no questions asked**! this is their room and they do not have to host you.
-{EMOJI['check']} **9**)  don't react to a kick or block! **hosts do not have to explain why they blocked you.** if this happens, please contact mods.
-{EMOJI['check']} **10**)  if you joined with a {EMOJI["pokeball"]}, you can switch to a masterball **once** by going back to <#{active_raids_id}> and clicking the {EMOJI["masterball"]} (but you better use one or you'll get blocked!)
-{EMOJI['check']} **11**)  when you've caught the Pokémon, please write `.caught`!
-{EMOJI['check']} **12**)  please `.pet`. me
-''',
-
-            f'''
-**For Hosts**
-_Commands_
-{HOST_COMMANDS}
-
-{EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
-{EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
-{EMOJI['check']} **3**)  if a trainers "forgets" to use their masterball when they sign up as {EMOJI["masterball"]} _definitely_ block them
-{EMOJI['check']} **4**)  **do not go afk when hosting!** _you cannot pause raids._ if you wait 30 minutes, it's likely many of the users in your pool will be away and the whole thing falls apart
-{EMOJI['check']} **5**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
-{EMOJI['check']} **6**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed and blocked users **cannot rejoin**)
-''']
-
-
-def make_readme_ffa(desc, active_raids_id):
-    notice = f"\n\nThe host expects everyone to know the following: {enquote(desc)}" if desc else ""
-
-    # todo message limit
-    return [f'''{EMOJI["wooloo"]} **Everyone, Read This Carefully** {EMOJI["wooloo"]}
-
-This is a **free-for-all** raid! There is no queue, but follow the instructions of the host.{notice}
-''',
-
-            f'''
-**For Participants**
-_Commands_
-`.queue` / `.q` to have the current queue DM'd to you
-`.caught` to indicate you've caught the Pokémon
-`.code` to view the code (if set)
-`.leave` to leave the raid
-
-{EMOJI['check']} **1**)  if you don't follow instructions, you might get kicked or blocked by the host
-{EMOJI['check']} **2**)  enter this raid by visiting <#{active_raids_id}>
-{EMOJI['check']} **3**)  when you're done raiding, you **have** to leave the raid by **unclicking** the {EMOJI["pokeball"]} or {EMOJI["masterball"]} in <#{active_raids_id}> or by typing `.leave`
-{EMOJI['check']} **4**)  you must also **remove the host from your friend's list**, even if you intend to raid with them again later!
-{EMOJI['check']} **5**)  hosts are completely free to remove users for **any reason whatsoever, no questions asked**! this is their room and they do not have to host you.
-{EMOJI['check']} **6**)  don't react to a kick or block! **hosts do not have to explain why they blocked you.** if this happens, please contact mods.
-{EMOJI['check']} **7**)  when you've caught the Pokémon, please write `.caught`!
-{EMOJI['check']} **8**)  please `.pet`. me
-''',
-
-            f'''
-**For Hosts**
-_Commands_
-{HOST_COMMANDS}
-
-{EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
-{EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
-{EMOJI['check']} **3**)  **do not go afk when hosting!** _you cannot pause raids._
-{EMOJI['check']} **4**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
-''']
-
-
-def make_error_msg(err, uid):
-    if err == 'WF_NO_ACCOUNT':
-        msg = 'You do not have a linked profile on http://wooloo.farm/ ! In order to raid, you must link a **public** (not marked private) discord account with your 🗺️ **friend code**, ✨ **in-game name**, and 🎮 **switch name**. This allows others to quickly add or verify you during a chaotic raid.'
-
-    elif err.startswith('WF_NOT_SET'):
-        key = err.split(': ')[1]
-        msg = f'Your {key} is not set on http://wooloo.farm/profile/edit , please update it accordingly. In order to raid, you must link a **public** (not marked private) discord account with your 🗺️ **friend code**, ✨ **in-game name**, and 🎮 **switch name**. This allows others to quickly add or verify you during a chaotic raid.'
-
-    elif err.startswith('WF_NO_IGN'):
-        msg = f'Your in-game name is not set on http://wooloo.farm/profile/edit , please update it accordingly. This is the trainer name that appears in-game. If you own both games, both can be stored.'
-
-    elif err == 'ROLE_BANNED_FROM_RAIDING':
-        msg = 'You are currently banned from raiding on the server. You will not be able to join or host any raids.'
-
-    elif err == 'ROLE_BANNED_FROM_HOSTING':
-        msg = 'You are currently banned from hosting raids on the server. You will be able to join raids, but you cannot host your own.'
-
-    else:
-        msg = f'An unknown error {err} is preventing that action for your account. Please contact jacob#2332 with this error message.'
-
-    return f"<@{uid}> {msg} {EMOJI['flop']}"
+FLEXIBLE, FFA, QUEUE = 1, 2, 3
 
 
 def show_member_for_log(member):
@@ -226,7 +91,7 @@ used_mb {self.used_mb}'''
 
 
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, mode, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
 
 
 class HostedRaid(object):
@@ -237,7 +102,7 @@ class HostedRaid(object):
         self.guild = guild
 
         self.raid_name = None
-        self.ffa = False
+        self.mode = FLEXIBLE
         self.private = False
         self.no_mb = False
         self.channel = None
@@ -246,6 +111,7 @@ class HostedRaid(object):
         self.listing_message = None
         self.last_round_message = None
         self.pins = []
+        self.echos = {}
 
         self.round = 0
         self.max_joins = 30
@@ -285,7 +151,7 @@ class HostedRaid(object):
             return RaidRecord(host_id=self.host_id,
                               guild_id=self.guild.id,
                               raid_name=self.raid_name,
-                              ffa=self.ffa,
+                              mode=self.mode,
                               private=self.private,
                               no_mb=self.no_mb,
                               channel_id=self.channel.id if self.channel is not None else None,
@@ -332,7 +198,7 @@ class HostedRaid(object):
 
             self.host_id = r.host_id
             self.raid_name = r.raid_name
-            self.ffa = r.ffa
+            self.mode = r.mode
             self.private = r.private
             self.no_mb = r.no_mb
             self.channel_name = r.channel_name
@@ -361,7 +227,7 @@ class HostedRaid(object):
     def destroy(self):
         self.bot.clear_wait_fors(self.host_id)
 
-    async def send_confirm_prompt(self, ctx, raid_name, channel_name, desc=None, max_joins=30, private=False, no_mb=False, locked=False):
+    async def send_confirm_prompt(self, ctx, raid_name, channel_name, mode=FLEXIBLE, desc=None, max_joins=30, private=False, no_mb=False, locked=False):
 
         async with self.lock:
             if self.confirmed or self.channel or self.wfr_message:
@@ -369,14 +235,13 @@ class HostedRaid(object):
 
             self.raid_name = raid_name
             self.channel_name = channel_name
-            self.ffa = 'ffa' in self.channel_name.lower()
-            self.max_joins = clamp(max_joins, 3, 50 if self.ffa else 30)
+            self.mode = mode
+            self.max_joins = clamp(max_joins, 3, 30 if mode == QUEUE else 50)
             self.private = private
             self.no_mb = no_mb
             self.locked = locked
-            options = []
-            if self.ffa:
-                options.append('**FFA**')
+            options = [f'''**{['flexible', 'FFA', 'queue'][self.mode]}**''']
+
             if self.private:
                 options.append('**private** (hidden code)')
             if self.no_mb:
@@ -392,14 +257,14 @@ class HostedRaid(object):
             if not desc:
                 msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
 
-    {CREATE_HELP}'''
+{texts.CREATE_HELP}'''
             else:
                 self.desc = desc
                 msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
 
-    Are you sure you want to continue?
+Are you sure you want to continue?
 
-    {CREATE_HELP}'''
+{texts.CREATE_HELP}'''
 
             self.wfr_message = await ctx.send(msg)
             for reaction in ['✅', ICON_CLOSE]:
@@ -440,8 +305,7 @@ class HostedRaid(object):
 
             await self.channel.send(f"✨ _Welcome to your raid room, <@{self.host_id}>!_")
 
-            readme = make_readme_ffa(self.desc, self.raid.listing_channel.id) if self.ffa \
-                else make_readme(self.desc, self.raid.listing_channel.id)
+            readme = texts.make_readme(self.mode, self.desc, self.raid.listing_channel.id)
 
             rm_intro = await self.channel.send(f"{FIELD_BREAK}{readme[0]}")
             rm_raider = await self.channel.send(f"{FIELD_BREAK}{readme[1]}")
@@ -484,9 +348,9 @@ class HostedRaid(object):
         description += FIELD_BREAK
 
         # ffa mode
-        if self.ffa:
+        if self.mode == FFA:
             reactions = [EMOJI['pokeball']]
-            instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool! This is an **FFA** raid (there is no bot-managed queue).
+            instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool! This is an **FFA** raid (there is no botte-managed queue).
 
 Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
         # queue, no masterballs
@@ -500,7 +364,7 @@ When you are done raiding, you **must** leave the raid by removing your {EMOJI["
             reactions = [EMOJI['pokeball'], EMOJI['masterball']]
             instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool or {EMOJI["masterball"]} _only_ if you're going to use a masterball (at which point you'll be removed from the queue).
 
-            When you are done raiding, you **must** leave the raid by removing your {EMOJI["pokeball"]} reaction or by typing `.leave`. Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
+When you are done raiding, you **must** leave the raid by removing your {EMOJI["pokeball"]} reaction or by typing `.leave`. Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
 
         footer = ''
         thumbnail = f"https://static.wooloo.farm/games/swsh/species_lg/831{'_S' if 'shiny' in self.channel_name.lower() else ''}.png"
@@ -561,23 +425,25 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         sections = []
         lines = []
 
-        if not self.ffa:
+        if self.mode != FFA:
             if self.group:
                 group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in self.group])
-                sections.append(f'**Current Round**\n{group_text}')
+                sections.append(f'**Current Group**\n{group_text}')
 
-            next_up, wraparound = self.pool.get_next(3, advance=False)
+            next_up, wraparound = self.pool.get_next(5 if self.mode == FLEXIBLE else 3, advance=False)
             group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in next_up])
-            sections.append(f'**Next Round**\n{group_text}')
+            sections.append(f'**Next Call**\n{group_text}')
 
             lines = [f"{EMOJI['masterball']} " + (f"<@{uid}>" if mentions else self.member_name(uid)) for uid in
                      self.pool.mb]
         for i, uid in enumerate(self.pool.q):
-            if not self.ffa and i == self.pool.i:
+            if self.mode != FFA and i == self.pool.i:
                 lines.append(f"{EMOJI['join']} _we are here_")
             lines.append(f"`{i + 1: >2}` " + (f"<@{uid}>" if mentions else self.member_name(uid)))
 
-        title = 'Active Raiders' if self.ffa else 'Queue'
+
+
+        title = 'Active Raiders' if self.mode == FFA else 'Queue'
         lines = '\n'.join(lines)
         sections.append(f'**{title}**\n{lines}')
         description = f'\n{FIELD_BREAK}'.join(sections)
@@ -612,7 +478,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             if ctx.channel != self.channel:
                 return await send_message(ctx, f'Please initialize rounds in the actual raid channel.', error=True)
 
-            if self.ffa:
+            if self.mode == FFA:
                 return await send_message(ctx, f'Rounds are disabled in FFA raids. The host runs it as they please.',
                                           error=True)
 
@@ -716,7 +582,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
             can_raid, err = await self.bot.trainers.can_raid(member, self.host_id)
             if not can_raid:
-                msg = make_error_msg(err, uid)
+                msg = texts.make_error_msg(err, uid)
                 await member.send(msg)
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return
@@ -919,7 +785,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         await self.channel.edit(name=f'{CLOSED_EMOJI}{self.channel_name[1:]}', overwrites=overwrites)
 
         if not immediately:
-            if not immediately and (self.round >= 3 or self.ffa):
+            if not immediately and (self.round >= 3 or self.mode == FFA):
                 msg = f'''✨ **Raid Host Complete!**
 
 Thank you for raiding, this channel is now closed!
@@ -960,7 +826,6 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
         # workaround for discord sync unreliable
         await asyncio.sleep(10)
         await self.channel.edit(sync_permissions=True)
-
 
     async def send_host_cleanup_message(self):
         lines = []
@@ -1048,7 +913,7 @@ class Raid(commands.Cog):
             host_id integer not null,
             guild_id integer not null,
             raid_name text not null,
-            ffa integer not null,
+            mode integer not null default 1,
             private integer not null,
             no_mb integer not null,
             channel_id integer not null,
@@ -1071,7 +936,7 @@ class Raid(commands.Cog):
             host_id integer not null,
             guild_id integer not null,
             raid_name text not null,
-            ffa integer not null,
+            mode integer not null default 1,
             private integer not null,
             no_mb integer not null,
             channel_id integer not null,
@@ -1092,6 +957,15 @@ class Raid(commands.Cog):
         self.db.commit()
         c.close()
 
+    def remake_db(self):
+        self.db.close()
+        try:
+            os.remove('data.db')
+        except:
+            pass
+        self.db = sqlite3.connect('raid.db')
+        self.make_db()
+
     async def load_raids_from_db(self):
         # print(f'[DB] Attempting to load raids...')
         if self.raids:
@@ -1099,7 +973,7 @@ class Raid(commands.Cog):
 
         t = time.time()
         c = self.db.cursor()
-        c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
+        c.execute('select host_id, guild_id, raid_name, mode, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = HostedRaid(self.bot, self, self.guild, r.host_id)
             loaded, err = await raid.load_from_record(r)
@@ -1108,7 +982,7 @@ class Raid(commands.Cog):
             if not loaded:
                 print(f'Did not succesfully load {r.raid_name}, error: {err}')
                 if raid.channel and not raid.closed:
-                    await raid.channel.send(f'❌ During a bot restart, this raid failed to load and will have to be remade. This is likely a Discord issue, but let <@232650437617123328> know. The following error occured:\n\n```{err}```')
+                    await raid.channel.send(f'❌ During a botte restart, this raid failed to load and will have to be remade. This is likely a Discord issue, but let <@232650437617123328> know. The following error occured:\n\n```{err}```')
             else:
                 self.raids[raid.host_id] = raid
                 print(f'Succesfully loaded {r.raid_name}')
@@ -1123,7 +997,7 @@ class Raid(commands.Cog):
                     else:
                         ago = f'{delta//60} minute(s)'
 
-                    await raid.channel.send(f'🔄 Bot Reloaded! Restored raid data from ~{ago} ago.')
+                    await raid.channel.send(f'🔄 Botte Reloaded! Restored raid data from ~{ago} ago.')
 
         c.close()
         print(f'[DB] Loaded {len(self.raids)} raids from database. Took {time.time() - t:.3f} seconds')
@@ -1234,15 +1108,13 @@ class Raid(commands.Cog):
     async def host(self, ctx, *, arg=None):
 
         if not self.creating_enabled and ctx.author.id != 232650437617123328:
-            return await send_message(ctx,
-                                      'Creating new raids is temporarily paused (probably pending a bot update, check the bot status channel).',
-                                      error=True)
+            return await send_message(ctx, 'Creating new raids is temporarily paused (probably pending a botte update, check the botte status channel).', error=True)
 
         if arg is None or 'help' in arg:
-            msg = f'''{CREATE_HELP}
+            msg = f'''{texts.CREATE_HELP}
 
 _Managing a Raid_
-{HOST_COMMANDS}
+{texts.HOST_COMMANDS}
 '''
             return await send_message(ctx, msg)
 
@@ -1254,6 +1126,20 @@ _Managing a Raid_
         uid = ctx.author.id
         if uid in self.raids:
             return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
+
+        mode = FLEXIBLE
+        try:
+            mode_arg, arg = arg.split(' ', 1)
+            try:
+                mode = {
+                    'flexible': FLEXIBLE,
+                    'ffa': FFA,
+                    'queue': QUEUE,
+                }[mode_arg.lower()]
+            except KeyError:
+                pass
+        except ValueError:
+            pass
 
         max_joins = 30
         m = re.search(r'max=(\d*)', arg)
@@ -1288,17 +1174,23 @@ _Managing a Raid_
             arg = arg.replace('locked', '')
 
         name = arg.strip()
+        if 'ffa' in name.lower():
+            mode = FFA
+        elif mode == FFA:
+            name = f'ffa {name}'
+
         channel_name = f"{RAID_EMOJI}-{name.replace(' ', '-')}"[:100]
         channel_name = re.sub('[<>]', '', channel_name)
 
         can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
         if not can_host:
-            msg = make_error_msg(err, uid)
+            msg = texts.make_error_msg(err, uid)
             return await send_message(ctx, msg, error=True)
 
         self.raids[uid] = HostedRaid(self.bot, self, self.guild, ctx.author.id)
         print('[Raid Creation]', self.raids)
-        await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, desc, max_joins, private, no_mb, locked)
+        # todo refactor long param list into options dict or namedtuple
+        await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, mode, desc, max_joins, private, no_mb, locked)
 
     @host.error
     async def host_error(self, ctx, error):
@@ -1319,7 +1211,7 @@ _Managing a Raid_
         if uid in self.raids:
             return await self.raids[uid].round_command(ctx, arg)
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     @commands.command(aliases=['end'])
     async def close(self, ctx, arg=''):
@@ -1334,7 +1226,7 @@ _Managing a Raid_
                 if raid and raid.channel == ctx.channel:
                     return await raid.end('immediately' in arg or 'now' in arg)
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     '''
     host moderation
@@ -1391,7 +1283,7 @@ _Managing a Raid_
                 break
 
         if not target_raid:
-            return await send_message(ctx, RAID_NOT_FOUND, error=True)
+            return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
         match = idPattern.search(arg)
         if not match:
@@ -1434,7 +1326,7 @@ _Managing a Raid_
         except ValueError:
             return await send_message(ctx, f'Please enter a number, i.e. `.max 18`', error=True)
 
-        n = clamp(n, 3, 50 if raid.ffa else 30)
+        n = clamp(n, 3, 30 if raid.mode == QUEUE else 50)
         size = raid.pool.size()
         if n < size:
             return await send_message(ctx, f'You cannot go lower than the current pool size ({size}).', error=True)
@@ -1555,6 +1447,42 @@ _Managing a Raid_
 
         await ctx.send(f'Message #**{n + 1}** unpinned! This cannot presently be undone.')
 
+    @commands.command()
+    async def echo(self, ctx, *, arg=''):
+        uid = ctx.author.id
+        if uid not in self.raids:
+            return
+
+        raid = self.raids[uid]
+        if raid.channel != ctx.channel:
+            return await send_message(ctx, f'You may only `.echo` in your active raid channel.', error=True)
+
+        echo_help = f'_Usage_\n`.echo <tag> <message goes here>` to set an echo\n`.echo <tag>` to have me repeat it\nTo update an `.echo`, just set it again.'
+
+        if not arg:
+            msg = echo_help
+            if len(raid.echos):
+                tags = ' '.join([f'`{t}' for t in raid.echos.keys()])
+                msg = f'{msg}{DBL_BREAK}Current Tags: {tags}'
+            return await send_message(ctx, msg, error=True)
+
+        msg = None
+        try:
+            tag, msg = arg.split(' ', 1)
+        except ValueError:
+            tag = arg
+
+        if not msg:
+            if tag in raid.echos:
+                return await ctx.send(f'**Echo from the Host**\n{raid.echos[tag]}')
+            return await send_message(ctx, f'Echo not found for tag `{tag}`.{DBL_BREAK}{echo_help}', error=True)
+
+        if len(raid.echos) > 5:
+            return await send_message(ctx, f'You cannot have more than 5 echos at a time, currently. If you want more,let jacob know.', error=True)
+
+        raid.echos[tag] = msg[:1000]
+        return await ctx.send(f'**Raid echo set for tag `{tag}`**\nUse `.echo {tag}` to have me repeat it.{DBL_BREAK}{raid.echos[tag]}')
+
     '''
     misc
     '''
@@ -1576,7 +1504,7 @@ _Managing a Raid_
                 e = raid.make_queue_embed(mentions=False, cmd=ctx.invoked_with)
                 return await ctx.author.send(raid.raid_name, embed=e)\
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx, arg=''):
@@ -1620,7 +1548,7 @@ _Managing a Raid_
 
                 return
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     @commands.command(aliases=['catch'])
     async def caught(self, ctx, arg=None):
@@ -1685,7 +1613,7 @@ _Managing a Raid_
 
                 return await ctx.send(msg)
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     @commands.command()
     async def leave(self, ctx, arg=None):
@@ -1698,7 +1626,7 @@ _Managing a Raid_
                 await ctx.message.add_reaction('✅')
                 return await raid.user_leave(user, True)
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     '''
     raid admin
@@ -1766,6 +1694,12 @@ _Managing a Raid_
         await self.load_raids_from_db()
         await ctx.send(f'Finished.')
 
+    @checks.is_jacob()
+    @commands.command(name='dangerremakedb')
+    async def db_remake(self, ctx):
+        self.remake_db()
+        await ctx.send(f'Finished. If there are active raids, they will need to be cleaned.')
+
     @commands.has_permissions(administrator=True)
     @commands.command()
     async def announce(self, ctx, *, arg):
@@ -1787,7 +1721,7 @@ _Managing a Raid_
             else:
                 url = None
         color = random.choice(TYPE_COLORS)
-        e = discord.Embed(title='Bot Announcement!', description=f'''{EMOJI['honk']} {arg}''', color=color)
+        e = discord.Embed(title='Botte Announcement!', description=f'''{EMOJI['honk']} {arg}''', color=color)
         if url:
             e.set_image(url=url)
         for channel in self.category.text_channels:
@@ -1865,8 +1799,11 @@ _Managing a Raid_
         # raids_cid = 661468408856051733 # test
         # archive_cid = 666527061673771030 # test
 
-        raids_cid = 661425972158922772  # live
-        archive_cid = 652579764837679145  # live
+        # raids_cid = 661425972158922772  # live
+        # archive_cid = 652579764837679145  # live
+
+        raids_cid = 669605813727395864 # demo
+        archive_cid = 669605829984387098 # demo
 
         try:
             self.category = self.bot.get_channel(raids_cid)
@@ -1875,7 +1812,7 @@ _Managing a Raid_
             self.listing_channel = discord.utils.get(self.guild.text_channels, name='active-raids')
             self.thanks_channel = discord.utils.get(self.guild.text_channels, name='raid-thanks')
             self.log_channel = discord.utils.get(self.guild.text_channels, name='raid-log')
-            self.breakroom = self.bot.get_channel(652367800912052244)
+            self.breakroom = discord.utils.get(self.guild.text_channels, name='raid-chat')
             print(f'Bound to {raids_cid}', self.category, self.guild, self.listing_channel)
 
         except AttributeError:

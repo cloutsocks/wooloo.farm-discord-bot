@@ -1,16 +1,11 @@
-import aiohttp
 import discord
 import random
-import math
-import gzip
-import json
-import time
-import secrets
+
+import discord
+from discord.ext import commands
 
 import checks
-from common import idPattern, send_message, resolve_mention, send_user_not_found, \
-    EMOJI, TYPE_COLORS, DBL_BREAK, INFO_BLUE
-from discord.ext import commands
+from common import send_message, EMOJI
 
 
 class Misc(commands.Cog):

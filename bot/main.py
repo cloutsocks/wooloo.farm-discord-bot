@@ -1,20 +1,13 @@
 import json
 import os
-import asyncio
-import random
-import secrets
-import discord
-import logging
-import traceback
 import sys
-import sqlite3
 import time
-import error
+import traceback
+
+import discord
+from discord.ext import commands
 
 import checks
-
-from common import idPattern, send_message
-from discord.ext import commands
 
 initial_extensions = (
     'common',
