@@ -948,15 +948,16 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
     async def archive(self):
         print(f'[Raid Archive] Archiving {self}')
 
-        async with self.lock:
-            deleted = self.raid.raids.pop(self.host_id, None)
-            if deleted:
-                self.destroy()
-                await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
-                await self.raid.save_raids_to_db()
-                # workaround for discord sync unreliable
-                await asyncio.sleep(10)
-                await self.channel.edit(sync_permissions=True)
+        deleted = self.raid.raids.pop(self.host_id, None)
+        if deleted:
+            self.destroy()
+
+        await self.raid.save_raids_to_db()
+        await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
+        # workaround for discord sync unreliable
+        await asyncio.sleep(10)
+        await self.channel.edit(sync_permissions=True)
+
 
     async def send_host_cleanup_message(self):
         lines = []
