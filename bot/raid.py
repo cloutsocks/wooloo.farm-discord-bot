@@ -948,9 +948,12 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
     async def archive(self):
         print(f'[Raid Archive] Archiving {self}')
 
-        deleted = self.raid.raids.pop(self.host_id, None)
-        if deleted:
-            self.destroy()
+        current = self.raid.raids.get(self.host_id, None)
+        if current is not self:
+            return None
+
+        del self.raid.raids[self.host_id]
+        self.destroy()
 
         await self.raid.save_raids_to_db()
         await self.channel.edit(sync_permissions=True, category=self.raid.archive, position=0)
