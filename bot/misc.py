@@ -88,7 +88,7 @@ class Misc(commands.Cog):
             arg, votes = arg.split('votes=')
             emoji = votes.split(',')
 
-        msg = await ctx.send(arg)
+        msg = await ctx.send(f'''**<@{ctx.author.id}> would like to get everyone's opinion on:** {arg}''')
         for reaction in emoji:
             await msg.add_reaction(reaction.strip('<> '))
 
