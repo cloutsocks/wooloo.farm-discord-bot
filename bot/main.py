@@ -14,7 +14,7 @@ initial_extensions = (
     'error',
     'trainers',
     'misc',
-    'raid',
+    'raid.cog',
 )
 
 
