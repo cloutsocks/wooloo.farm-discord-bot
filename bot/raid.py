@@ -166,7 +166,6 @@ def show_member_for_log(member):
 
 class RaidPool(object):
     def __init__(self):
-        self.i = 0
         self.q = []
         self.mb = []
         self.used_mb = []
@@ -186,12 +185,8 @@ class RaidPool(object):
             removed = True
 
         try:
-            index = self.q.index(uid)
-            if index < self.i:
-                self.i -= 1
             self.q.remove(uid)
             removed = True
-
         except ValueError:
             pass
 
@@ -203,26 +198,23 @@ pb {self.q}
 used_mb {self.used_mb}'''
 
     def get_next(self, n=1, advance=False):
+        out = []
 
         mb_out = self.mb[:n]
-        out = [('mb', uid) for uid in mb_out]
+        out.extend(('mb', uid) for uid in mb_out)
 
         if advance:
             self.mb = self.mb[n:]
 
-        wraparound = False
-        end = self.i + n - len(out)
-        out += [('pb', uid) for uid in self.q[self.i:end]]
         if len(out) < n:
-            wraparound = True
-            end = remaining = n - len(out)
-            out += [('pb', uid) for uid in self.q[0:remaining]]
+            pb_out = self.q[:n - len(out)]
+            out.extend(('pb', uid) for uid in pb_out)
 
-        if advance:
-            self.i = end
-            # self.q += mb_out
+            if advance:
+                self.q[:] = self.q[len(pb_out):]
+                self.q.extend(pb_out)
 
-        return out, wraparound
+        return out
 
 
 RaidRecord = namedtuple('RaidRecord',
@@ -566,15 +558,13 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                 group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in self.group])
                 sections.append(f'**Current Round**\n{group_text}')
 
-            next_up, wraparound = self.pool.get_next(3, advance=False)
+            next_up = self.pool.get_next(3, advance=False)
             group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in next_up])
             sections.append(f'**Next Round**\n{group_text}')
 
             lines = [f"{EMOJI['masterball']} " + (f"<@{uid}>" if mentions else self.member_name(uid)) for uid in
                      self.pool.mb]
         for i, uid in enumerate(self.pool.q):
-            if not self.ffa and i == self.pool.i:
-                lines.append(f"{EMOJI['join']} _we are here_")
             lines.append(f"`{i + 1: >2}` " + (f"<@{uid}>" if mentions else self.member_name(uid)))
 
         title = 'Active Raiders' if self.ffa else 'Queue'
@@ -639,11 +629,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
-        self.group, wraparound = self.pool.get_next(3, advance=True)
-
-        queue_text = ''
-        if wraparound:
-            queue_text = f"{DBL_BREAK}:recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
+        self.group = self.pool.get_next(3, advance=True)
 
         announcer = random.choice(ANNOUNCE_EMOJI)
         title = f'{announcer} 📣 Round {self.round} Start!'
@@ -656,7 +642,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         description = f'''{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
 `.skip @user` to skip and replace someone in the current round
 `.remove @user` to remove (and skip) a user from this raid (they **cannot** rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids{queue_text}{FIELD_BREAK}'''
+`.block @user` to remove (and skip) a user from **all** of your raids{FIELD_BREAK}'''
         e = discord.Embed(title=title, description=description)  # .set_footer(text='🐑 wooloo.farm')
 
         mention = f'<@{self.host_id}>'
@@ -686,7 +672,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
             e.add_field(name=str(i + 1), value=raider_text, inline=False)
 
-        next_up, wraparound = self.pool.get_next(3, advance=False)
+        next_up = self.pool.get_next(3, advance=False)
         group_text = '🕑 ' + ' '.join([f'<@{t[1]}>' for t in next_up])
         e.add_field(name='Next Round', value=group_text, inline=False)
 
@@ -864,7 +850,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
             removed = self.group[to_remove]
             del self.group[to_remove]
-            replacement, wraparound = self.pool.get_next(advance=True)
+            replacement = self.pool.get_next(advance=True)
             self.group += replacement
 
             if self.private:
@@ -873,8 +859,6 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                     await user.send( f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn (as a replacement)! But keep in mind you may be skipped, so check on the channel as well.''')
 
         msg = f"<@{removed[1]}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{removed[1]}>'s place in this round."
-        if wraparound:
-            msg += " :recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
 
         return await ctx.send(msg)
 
