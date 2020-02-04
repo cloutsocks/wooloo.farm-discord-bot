@@ -212,7 +212,6 @@ used_mb {self.used_mb}'''
 
             if advance:
                 self.q[:] = self.q[len(pb_out):]
-                self.q.extend(pb_out)
 
         return out
 
@@ -629,6 +628,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
+        self.q.extend(uid for (join_type, uid) in current_group if join_type == 'pb')
         self.group = self.pool.get_next(3, advance=True)
 
         announcer = random.choice(ANNOUNCE_EMOJI)
