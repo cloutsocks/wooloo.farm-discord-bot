@@ -36,22 +36,22 @@ CREATE_HELP = '''_Creating a Raid_
 
 HOST_COMMANDS = '''`.host help` to show these commands
 `.fc <@user>` to display FC / IGN / Switch Name
-`.queue` / `.q` to show the current queue in the channel for everyone to see
-`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
-`.skip @user` to skip and replace someone in the current round
-`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids
+`.queue` / `.q` to show the current queue in the channel publicly
+`.round <4 digit code>` for a new round (_optionally_ reuses the code thereafter with `.round`)
+`.skip @user` to skip and replace someone this round
+`.remove @user` to remove (+skip) a user from this raid (they can't rejoin!)
+`.block @user` to remove (+skip) a user from **all** of your raids
 `.group <msg>` to ping everyone in the current round's group with a message
-`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
+`.end` to end the raid and DMs you a list of users to help you clean your friend list
 `.pin` to pin your last message
-`.unpin <#>` to unpin a message
+`.unpin <#>` to unpin message
 `.max <#>` to adjust max participants
-`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-`.private` to toggle a private raid (hidden codes from lurkers)
+`.lock` to temporarily prevent new raiders from joining (doesn't stop the raid)
+`.private` to toggle a private raid (hides codes from lurkers)
 `.qfc` show the current queue WITH fc / switch name
 [**NEW**]
 `.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
-`.up <pokémon>` to tell everyone what pokémon you're hosting right now
+`.up <pokémon>` to set which pokémon you're hosting
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
