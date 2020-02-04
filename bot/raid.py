@@ -50,6 +50,7 @@ HOST_COMMANDS = '''`.host help` to show these commands
 `.qfc` show the current queue WITH fc / switch name
 [**NEW**]
 `.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
+`.up <pokémon>` to tell everyone what pokémon you're hosting right now
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
@@ -217,7 +218,7 @@ used_mb {self.used_mb}'''
 
 
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed')
 
 
 class HostedRaid(object):
@@ -242,6 +243,7 @@ class HostedRaid(object):
         self.max_joins = 30
         self.pool = None
         self.group = []
+        self.ups = []
 
         self.start_time = None
         self.time_saved = None
@@ -288,6 +290,7 @@ class HostedRaid(object):
                               max_joins=self.max_joins,
                               pool=json.dumps(self.pool.__dict__) if self.pool is not None else None,
                               raid_group=json.dumps(self.group) if self.group is not None else None,
+                              ups=json.dumps(self.ups),
                               start_time=self.start_time,
                               time_saved=int(time.time()),
                               code=self.code,
@@ -335,6 +338,7 @@ class HostedRaid(object):
             if r.pool:
                 self.pool.__dict__ = json.loads(r.pool)
             self.group = json.loads(r.raid_group) if r.raid_group else []
+            self.ups = json.loads(r.ups)
 
             self.start_time = r.start_time
             self.time_saved = r.time_saved
@@ -590,6 +594,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     rounds
     '''
 
+    async def up_command(self, ctx, arg):
+        async with self.lock:
+            self.ups.append(arg)
+        e = discord.Embed(description=f'The current Pokémon is: **{arg}**!')
+        await ctx.send(embed=e)
+
     async def round_command(self, ctx, arg):
 
         async with self.lock:
@@ -639,7 +649,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         else:
             code_text = f'The code to join is **{self.code}**!'
 
-        description = f'''{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
+        if len(self.ups) == 0:
+            up_text = f'''The host hasn't told me what the current Pokémon is! They can use `.up pokémon` to tell me!'''
+        else:
+            up_text = f'''Who's that Pokémon? It's **{self.ups[-1]}**!'''
+
+        description = f'''{up_text}{DBL_BREAK}{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
 `.skip @user` to skip and replace someone in the current round
 `.remove @user` to remove (and skip) a user from this raid (they **cannot** rejoin!)
 `.block @user` to remove (and skip) a user from **all** of your raids{FIELD_BREAK}'''
@@ -889,6 +904,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             was_closed = self.closed
             self.closed = True
 
+        ups = '\n'.join(self.ups)
+        await self.raid.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) (or an admin) **ended** the raid: {self.raid_name}.{DBL_BREAK}**Declared Pokémon:**\n{ups}")
+
         if was_closed:
             if immediately:
                 await self.archive()
@@ -1044,34 +1062,13 @@ class Raid(commands.Cog):
             max_joins integer not null,
             pool text,
             raid_group text,
+            ups text,
             start_time integer not null,
             time_saved integer,
             code text,
             locked integer not null,
             closed integer not null,
             primary key(host_id)
-        )''')
-        c.execute('''create table if not exists raid_history (
-            host_id integer not null,
-            guild_id integer not null,
-            raid_name text not null,
-            ffa integer not null,
-            private integer not null,
-            no_mb integer not null,
-            channel_id integer not null,
-            channel_name text not null,
-            desc text,
-            listing_msg_id integer not null,
-            last_round_msg_id integer,
-            round integer not null,
-            max_joins integer not null,
-            pool text,
-            raid_group text,
-            start_time integer not null,
-            time_saved integer,
-            code text,
-            locked integer not null,
-            closed integer not null
         )''')
         self.db.commit()
         c.close()
@@ -1302,6 +1299,14 @@ _Managing a Raid_
         uid = ctx.author.id
         if uid in self.raids:
             return await self.raids[uid].round_command(ctx, arg)
+
+        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+
+    @commands.command()
+    async def up(self, ctx, arg=None):
+        uid = ctx.author.id
+        if uid in self.raids:
+            return await self.raids[uid].up_command(ctx, arg)
 
         return await send_message(ctx, RAID_NOT_FOUND, error=True)
 
