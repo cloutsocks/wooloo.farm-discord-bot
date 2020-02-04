@@ -10,7 +10,8 @@ import asyncio
 import checks
 
 from common import clamp, idPattern, send_message, print_error, resolve_mention, send_user_not_found, \
-    pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, ICON_CLOSE, enquote
+    pokeballUrl, escuchameUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, \
+    ICON_CLOSE, enquote
 from discord.ext import tasks, commands
 from collections import namedtuple
 
@@ -1393,7 +1394,7 @@ _Managing a Raid_
                                       error=True)
 
         if member == self.bot.user or member.id == target_raid.host_id:
-            return await send_message(ctx, f'hmmm', error=True)
+            return await send_message(ctx, '', error=True, image_url=escuchameUrl)
 
         if action == 'skip':
             return await target_raid.skip(member, ctx)

@@ -72,6 +72,7 @@ ANNOUNCE_EMOJI = ['<:wuwu:650913724068134923>',
     '<:honks:656493643690934273>'
 ]
 
+escuchameUrl = 'https://i.imgur.com/dJGmQXr.png'
 pokeballUrl = 'http://play.pokemonshowdown.com/sprites/itemicons/poke-ball.png'
 
 def strip_extra(s):
@@ -97,7 +98,7 @@ def resolve_mention(server, query, getId=True, useNicks=False, stripExtra=False)
 
     return None
 
-async def send_message(ctx, text, message=None, ping=True, error=False, color=None, expires=None):
+async def send_message(ctx, text, message=None, ping=True, error=False, color=None, image_url=None, expires=None):
 
     message = message or ctx.message
 
@@ -109,6 +110,8 @@ async def send_message(ctx, text, message=None, ping=True, error=False, color=No
         e.color = color if color else ERROR_RED
     if expires is None and error:
         expires = 10
+    if image_url is not None:
+        e.set_image(url=image_url)
 
     header = '<@{}>'.format(message.author.id) if ping else ''
     sent = await message.channel.send(header, embed=e, delete_after=expires)
