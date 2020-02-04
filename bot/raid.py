@@ -1081,7 +1081,7 @@ class Raid(commands.Cog):
 
         t = time.time()
         c = self.db.cursor()
-        c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
+        c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = HostedRaid(self.bot, self, self.guild, r.host_id)
             loaded, err = await raid.load_from_record(r)
