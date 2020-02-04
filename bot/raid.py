@@ -1392,8 +1392,8 @@ _Managing a Raid_
             return await send_message(ctx, f'Could not remove user! Please tag the mods to manually intervene.',
                                       error=True)
 
-        if member == self.bot.user:
-            return
+        if member == self.bot.user or member.id == target_raid.host_id:
+            return await send_message(ctx, f'hmmm', error=True)
 
         if action == 'skip':
             return await target_raid.skip(member, ctx)
