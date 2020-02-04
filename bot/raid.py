@@ -34,24 +34,24 @@ CREATE_HELP = '''_Creating a Raid_
 **+** _optional:_ add `private` to hide the code from lurkers
 **+** _optional:_ add `locked` lock the raid until you unlock with `.lock`'''
 
-HOST_COMMANDS = '''`.host help` to show these commands
-`.fc <@user>` to display FC / IGN / Switch Name
-`.queue` / `.q` to show the current queue in the channel publicly
-`.round <4 digit code>` for a new round (_optionally_ reuses the code thereafter with `.round`)
-`.skip @user` to skip and replace someone this round
-`.remove @user` to remove (+skip) a user from this raid (they can't rejoin!)
-`.block @user` to remove (+skip) a user from **all** of your raids
-`.group <msg>` to ping everyone in the current round's group with a message
-`.end` to end the raid and DMs you a list of users to help you clean your friend list
-`.pin` to pin your last message
-`.unpin <#>` to unpin message
-`.max <#>` to adjust max participants
-`.lock` to temporarily prevent new raiders from joining (doesn't stop the raid)
-`.private` to toggle a private raid (hides codes from lurkers)
-`.qfc` show the current queue WITH fc / switch name
+HOST_COMMANDS = '''`.host help` shows these commands
+`.fc <@user>` displays FC/IGN/Switch name
+`.queue` / `.q` shows current queue in channel publicly
+`.round <4 digit code>` moves to next round (_optionally_ reuses the code with `.round`)
+`.skip @user` skips replaces raider this round
+`.remove @user` removes (+skips) raider from this raid (they can't rejoin!)
+`.block @user` removes (+skips) raider from **all** of your raids
+`.group <msg>` pings everyone in the current round with a message
+`.end` ends raid, DMs a list of users for cleaning your friend list
+`.pin` pins last message
+`.unpin <#>` unpins message
+`.max <#>` sets max participants
+`.lock` temporarily stops new raiders from joining (doesn't stop the raid)
+`.private` toggles private mode (hides codes from lurkers)
+`.qfc` shows the current queue WITH FC/Switch name
 [**NEW**]
-`.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
-`.up <pokémon>` to set which pokémon you're hosting
+`.poll <poll message> votes=🐄,🐈,🐖,🦌` makes poll with reactions
+`.up <pokémon>` sets which pokémon you're hosting
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
