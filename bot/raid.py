@@ -1304,7 +1304,7 @@ _Managing a Raid_
         return await send_message(ctx, RAID_NOT_FOUND, error=True)
 
     @commands.command()
-    async def up(self, ctx, arg=None):
+    async def up(self, ctx, *, arg=None):
         uid = ctx.author.id
         if uid in self.raids:
             return await self.raids[uid].up_command(ctx, arg)
