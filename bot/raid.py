@@ -34,22 +34,21 @@ CREATE_HELP = '''_Creating a Raid_
 **+** _optional:_ add `locked` lock the raid until you unlock with `.lock`'''
 
 HOST_COMMANDS = '''`.host help` to show these commands
-`.fc <@user>` to display FC / IGN / Switch Name
-`.queue` / `.q` to show the current queue in the channel for everyone to see
-`.round <4 digit code>` to start a new round (you can _optionally_ re-use the code thereafter with `.round`)
-`.skip @user` to skip and replace someone in the current round
-`.remove @user` to remove (and skip) a user from this raid (they cannot rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids
-`.group <msg>` to ping everyone in the current round's group with a message
-`.end` to end the raid, i'll DM you a list of users to help you clean your friend list
+`.fc <@user>` display FC / IGN / Switch Name
+`.queue` / `.q` show the current queue
+`.qfc` show the queue with FC / IGN
+`.round <4 digit code>` to start a new round (you can re-use the last code by just typing `.round`)
+`.skip @user` to skip & replace someone in the current round
+`.remove @user` to remove a user from this raid (they cannot rejoin!)
+`.block @user` to remove a user from **all** of your raids
+`.group <msg>` to ping everyone in the current round with a message
 `.pin` to pin your last message
 `.unpin <#>` to unpin a message
-`.max <#>` to adjust max participants
+`.max <#>` to adjust max raiders
 `.lock` to temporarily prevent new raiders from joining (without stopping the raid)
-`.private` to toggle a private raid (hidden codes from lurkers)
-`.qfc` show the current queue WITH fc / switch name
-[**NEW**]
-`.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
+`.private` to toggle a private raid (hide the code from lurkers)
+`.poll <poll message> votes=🐄,🐈,🐖` to make a poll
+`.end` to end the raid
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the bot, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
@@ -91,11 +90,11 @@ _Commands_
 {HOST_COMMANDS}
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
-{EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
+{EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
 {EMOJI['check']} **3**)  if a trainers "forgets" to use their masterball when they sign up as {EMOJI["masterball"]} _definitely_ block them
-{EMOJI['check']} **4**)  **do not go afk when hosting!** _you cannot pause raids._ if you wait 30 minutes, it's likely many of the users in your pool will be away and the whole thing falls apart
+{EMOJI['check']} **4**)  **do not go afk when hosting!** _you cannot pause raids._ if other users go afk before you return, the whole thing falls apart.
 {EMOJI['check']} **5**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
-{EMOJI['check']} **6**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed and blocked users **cannot rejoin**)
+{EMOJI['check']} **6**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed & blocked users **cannot rejoin**)
 ''']
 
 
