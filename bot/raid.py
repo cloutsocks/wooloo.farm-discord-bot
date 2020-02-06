@@ -594,6 +594,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     '''
 
     async def up_command(self, ctx, arg):
+        if arg is None:
+            await send_message(ctx, 'Please specify a Pokémon!', error=True)
+            return
         async with self.lock:
             self.ups.append(arg)
         e = discord.Embed(description=f'The current Pokémon is: **{arg}**!')
