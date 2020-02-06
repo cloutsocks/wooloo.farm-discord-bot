@@ -442,9 +442,9 @@ class HostedRaid(object):
             readme = make_readme_ffa(self.desc, self.raid.listing_channel.id) if self.ffa \
                 else make_readme(self.desc, self.raid.listing_channel.id)
 
-            rm_intro = await self.channel.send(f"{FIELD_BREAK}{readme[0]}")
-            rm_raider = await self.channel.send(f"{FIELD_BREAK}{readme[1]}")
-            rm_host = await self.channel.send(f"{FIELD_BREAK}{readme[2]}")
+            rm_intro = await self.channel.send(f"{FIELD_BREAK}{readme[0]}"[:2000])
+            rm_raider = await self.channel.send(f"{FIELD_BREAK}{readme[1]}"[:2000])
+            rm_host = await self.channel.send(f"{FIELD_BREAK}{readme[2]}"[:2000])
 
             await rm_host.pin()
             await rm_raider.pin()
