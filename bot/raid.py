@@ -10,7 +10,8 @@ import asyncio
 import checks
 
 from common import clamp, idPattern, send_message, print_error, resolve_mention, send_user_not_found, \
-    pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, ICON_CLOSE, enquote
+    pokeballUrl, escuchameUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, ANNOUNCE_EMOJI, ICON_ATTACK, \
+    ICON_CLOSE, enquote
 from discord.ext import tasks, commands
 from collections import namedtuple
 
@@ -165,7 +166,6 @@ def show_member_for_log(member):
 
 class RaidPool(object):
     def __init__(self):
-        self.i = 0
         self.q = []
         self.mb = []
         self.used_mb = []
@@ -185,12 +185,8 @@ class RaidPool(object):
             removed = True
 
         try:
-            index = self.q.index(uid)
-            if index < self.i:
-                self.i -= 1
             self.q.remove(uid)
             removed = True
-
         except ValueError:
             pass
 
@@ -202,30 +198,26 @@ pb {self.q}
 used_mb {self.used_mb}'''
 
     def get_next(self, n=1, advance=False):
+        out = []
 
         mb_out = self.mb[:n]
-        out = [('mb', uid) for uid in mb_out]
+        out.extend(('mb', uid) for uid in mb_out)
 
         if advance:
             self.mb = self.mb[n:]
 
-        wraparound = False
-        end = self.i + n - len(out)
-        out += [('pb', uid) for uid in self.q[self.i:end]]
         if len(out) < n:
-            wraparound = True
-            end = remaining = n - len(out)
-            out += [('pb', uid) for uid in self.q[0:remaining]]
+            pb_out = self.q[:n - len(out)]
+            out.extend(('pb', uid) for uid in pb_out)
 
-        if advance:
-            self.i = end
-            # self.q += mb_out
+            if advance:
+                self.q[:] = self.q[len(pb_out):]
 
-        return out, wraparound
+        return out
 
 
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed')
 
 
 class HostedRaid(object):
@@ -250,6 +242,7 @@ class HostedRaid(object):
         self.max_joins = 30
         self.pool = None
         self.group = []
+        self.ups = []
 
         self.start_time = None
         self.time_saved = None
@@ -296,6 +289,7 @@ class HostedRaid(object):
                               max_joins=self.max_joins,
                               pool=json.dumps(self.pool.__dict__) if self.pool is not None else None,
                               raid_group=json.dumps(self.group) if self.group is not None else None,
+                              ups=json.dumps(self.ups),
                               start_time=self.start_time,
                               time_saved=int(time.time()),
                               code=self.code,
@@ -343,6 +337,7 @@ class HostedRaid(object):
             if r.pool:
                 self.pool.__dict__ = json.loads(r.pool)
             self.group = json.loads(r.raid_group) if r.raid_group else []
+            self.ups = json.loads(r.ups)
 
             self.start_time = r.start_time
             self.time_saved = r.time_saved
@@ -565,15 +560,13 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                 group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in self.group])
                 sections.append(f'**Current Round**\n{group_text}')
 
-            next_up, wraparound = self.pool.get_next(3, advance=False)
+            next_up = self.pool.get_next(3, advance=False)
             group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in next_up])
             sections.append(f'**Next Round**\n{group_text}')
 
             lines = [f"{EMOJI['masterball']} " + (f"<@{uid}>" if mentions else self.member_name(uid)) for uid in
                      self.pool.mb]
         for i, uid in enumerate(self.pool.q):
-            if not self.ffa and i == self.pool.i:
-                lines.append(f"{EMOJI['join']} _we are here_")
             lines.append(f"`{i + 1: >2}` " + (f"<@{uid}>" if mentions else self.member_name(uid)))
 
         title = 'Active Raiders' if self.ffa else 'Queue'
@@ -599,6 +592,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     '''
     rounds
     '''
+
+    async def up_command(self, ctx, arg):
+        async with self.lock:
+            self.ups.append(arg)
+        e = discord.Embed(description=f'The current Pokémon is: **{arg}**!')
+        await ctx.send(embed=e)
 
     async def round_command(self, ctx, arg):
 
@@ -638,11 +637,8 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
-        self.group, wraparound = self.pool.get_next(3, advance=True)
-
-        queue_text = ''
-        if wraparound:
-            queue_text = f"{DBL_BREAK}:recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
+        self.pool.q.extend(uid for (join_type, uid) in self.group if join_type == 'pb')
+        self.group = self.pool.get_next(3, advance=True)
 
         announcer = random.choice(ANNOUNCE_EMOJI)
         title = f'{announcer} 📣 Round {self.round} Start!'
@@ -652,10 +648,15 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         else:
             code_text = f'The code to join is **{self.code}**!'
 
-        description = f'''{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
+        if len(self.ups) == 0:
+            up_text = f'''The host hasn't told me what the current Pokémon is! They can use `.up pokémon` to tell me!'''
+        else:
+            up_text = f'''Who's that Pokémon? It's **{self.ups[-1]}**!'''
+
+        description = f'''{up_text}{DBL_BREAK}{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
 `.skip @user` to skip and replace someone in the current round
 `.remove @user` to remove (and skip) a user from this raid (they **cannot** rejoin!)
-`.block @user` to remove (and skip) a user from **all** of your raids{queue_text}{FIELD_BREAK}'''
+`.block @user` to remove (and skip) a user from **all** of your raids{FIELD_BREAK}'''
         e = discord.Embed(title=title, description=description)  # .set_footer(text='🐑 wooloo.farm')
 
         mention = f'<@{self.host_id}>'
@@ -685,7 +686,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
             e.add_field(name=str(i + 1), value=raider_text, inline=False)
 
-        next_up, wraparound = self.pool.get_next(3, advance=False)
+        next_up = self.pool.get_next(3, advance=False)
         group_text = '🕑 ' + ' '.join([f'<@{t[1]}>' for t in next_up])
         e.add_field(name='Next Round', value=group_text, inline=False)
 
@@ -863,7 +864,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
             removed = self.group[to_remove]
             del self.group[to_remove]
-            replacement, wraparound = self.pool.get_next(advance=True)
+            replacement = self.pool.get_next(advance=True)
             self.group += replacement
 
             if self.private:
@@ -872,8 +873,6 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                     await user.send( f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn (as a replacement)! But keep in mind you may be skipped, so check on the channel as well.''')
 
         msg = f"<@{removed[1]}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{removed[1]}>'s place in this round."
-        if wraparound:
-            msg += " :recycle: Everyone in the `.queue` has now had a turn! We'll be starting from the beginning again."
 
         return await ctx.send(msg)
 
@@ -903,6 +902,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         async with self.lock:
             was_closed = self.closed
             self.closed = True
+
+        ups = '\n'.join(self.ups)
+        await self.raid.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) (or an admin) **ended** the raid: {self.raid_name}.{DBL_BREAK}**Declared Pokémon:**\n{ups}")
 
         if was_closed:
             if immediately:
@@ -1059,34 +1061,13 @@ class Raid(commands.Cog):
             max_joins integer not null,
             pool text,
             raid_group text,
+            ups text,
             start_time integer not null,
             time_saved integer,
             code text,
             locked integer not null,
             closed integer not null,
             primary key(host_id)
-        )''')
-        c.execute('''create table if not exists raid_history (
-            host_id integer not null,
-            guild_id integer not null,
-            raid_name text not null,
-            ffa integer not null,
-            private integer not null,
-            no_mb integer not null,
-            channel_id integer not null,
-            channel_name text not null,
-            desc text,
-            listing_msg_id integer not null,
-            last_round_msg_id integer,
-            round integer not null,
-            max_joins integer not null,
-            pool text,
-            raid_group text,
-            start_time integer not null,
-            time_saved integer,
-            code text,
-            locked integer not null,
-            closed integer not null
         )''')
         self.db.commit()
         c.close()
@@ -1098,7 +1079,7 @@ class Raid(commands.Cog):
 
         t = time.time()
         c = self.db.cursor()
-        c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed from raids')
+        c.execute('select host_id, guild_id, raid_name, ffa, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = HostedRaid(self.bot, self, self.guild, r.host_id)
             loaded, err = await raid.load_from_record(r)
@@ -1146,7 +1127,7 @@ class Raid(commands.Cog):
 
             print(f'[DB] Saving record {record} to database')
             try:
-                c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
+                c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
             except sqlite3.Error as e:
                 print(f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}')
 
@@ -1320,6 +1301,14 @@ _Managing a Raid_
 
         return await send_message(ctx, RAID_NOT_FOUND, error=True)
 
+    @commands.command()
+    async def up(self, ctx, *, arg=None):
+        uid = ctx.author.id
+        if uid in self.raids:
+            return await self.raids[uid].up_command(ctx, arg)
+
+        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+
     @commands.command(aliases=['end'])
     async def close(self, ctx, arg=''):
         uid = ctx.author.id
@@ -1402,8 +1391,8 @@ _Managing a Raid_
             return await send_message(ctx, f'Could not remove user! Please tag the mods to manually intervene.',
                                       error=True)
 
-        if member == self.bot.user:
-            return
+        if member == self.bot.user or member.id == target_raid.host_id:
+            return await send_message(ctx, '', error=True, image_url=escuchameUrl)
 
         if action == 'skip':
             return await target_raid.skip(member, ctx)

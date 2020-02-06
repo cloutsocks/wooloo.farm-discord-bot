@@ -88,7 +88,8 @@ class Misc(commands.Cog):
             arg, votes = arg.split('votes=')
             emoji = votes.split(',')
 
-        msg = await ctx.send(arg)
+        e = discord.Embed(title="Poll time!", description=f"**<@{ctx.author.id}> asks:**\n{arg}")
+        msg = await ctx.send(embed=e)
         for reaction in emoji:
             await msg.add_reaction(reaction.strip('<> '))
 
