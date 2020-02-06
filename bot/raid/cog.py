@@ -845,7 +845,7 @@ _Managing a Raid_
         self.remake_db()
         await ctx.send(f'Finished. If there are active raids, they will need to be cleaned.')
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_bot_admin()
     @commands.command()
     async def announce(self, ctx, *, arg):
 
@@ -880,7 +880,7 @@ _Managing a Raid_
                 await msg.add_reaction(reaction.strip('<> '))
         await ctx.send('Sent!')
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_bot_admin()
     @commands.command()
     async def raidsay(self, ctx, *, arg):
 
@@ -895,7 +895,7 @@ _Managing a Raid_
             await self.breakroom.send(msg)
         await ctx.send('Sent!')
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_bot_admin()
     @commands.command(aliases=['cl'])
     async def clear(self, ctx):
         if self.archive:

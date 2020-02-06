@@ -134,6 +134,14 @@ def make_error_msg(err, uid):
     elif err == 'ROLE_BANNED_FROM_HOSTING':
         msg = 'You are currently banned from hosting raids on the server. You will be able to join raids, but you cannot host your own.'
 
+    elif err == 'WF_BAN':
+        msg = '''You will not be able to join or host any raids with the wooloo.farm bot as you are banned from the wooloo.farm server. Please do not contact this server's staff about this as they are not responsible for your banning, nor can they undo it. If you haven't visited the wooloo.farm server, it means you were banned pre-emptively for conduct on another server.
+
+If you wish to appeal your wooloo.farm ban, you must do all of the following:
+
+1. Fill out the appeal form (which will show your ban reason): https://goto.wooloo.farm/removal-appeal
+2. Join the holding server so that a moderator may DM you with a response: https://discord.gg/xFZ3hYC'''
+
     else:
         msg = f'An unknown error {err} is preventing that action for your account. Please contact jacob#2332 with this error message.'
 
