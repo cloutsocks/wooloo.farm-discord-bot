@@ -93,11 +93,11 @@ _Commands_
 {HOST_COMMANDS}
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
-{EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `block` them
+{EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
 {EMOJI['check']} **3**)  if a trainers "forgets" to use their masterball when they sign up as {EMOJI["masterball"]} _definitely_ block them
-{EMOJI['check']} **4**)  **do not go afk when hosting!** _you cannot pause raids._ if you wait 30 minutes, it's likely many of the users in your pool will be away and the whole thing falls apart
+{EMOJI['check']} **4**)  **do not go afk when hosting!** _you cannot pause raids._ if other users go afk before you return, the whole thing falls apart.
 {EMOJI['check']} **5**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
-{EMOJI['check']} **6**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed and blocked users **cannot rejoin**)
+{EMOJI['check']} **6**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed & blocked users **cannot rejoin**)
 ''']
 
 
@@ -439,9 +439,9 @@ class HostedRaid(object):
             readme = make_readme_ffa(self.desc, self.raid.listing_channel.id) if self.ffa \
                 else make_readme(self.desc, self.raid.listing_channel.id)
 
-            rm_intro = await self.channel.send(f"{FIELD_BREAK}{readme[0]}")
-            rm_raider = await self.channel.send(f"{FIELD_BREAK}{readme[1]}")
-            rm_host = await self.channel.send(f"{FIELD_BREAK}{readme[2]}")
+            rm_intro = await self.channel.send(f"{FIELD_BREAK}{readme[0]}"[:2000])
+            rm_raider = await self.channel.send(f"{FIELD_BREAK}{readme[1]}"[:2000])
+            rm_host = await self.channel.send(f"{FIELD_BREAK}{readme[2]}"[:2000])
 
             await rm_host.pin()
             await rm_raider.pin()
@@ -596,6 +596,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     '''
 
     async def up_command(self, ctx, arg):
+        if arg is None:
+            await send_message(ctx, 'Please specify a Pokémon!', error=True)
+            return
         async with self.lock:
             self.ups.append(arg)
         e = discord.Embed(description=f'The current Pokémon is: **{arg}**!')
@@ -1304,7 +1307,7 @@ _Managing a Raid_
         return await send_message(ctx, RAID_NOT_FOUND, error=True)
 
     @commands.command()
-    async def up(self, ctx, arg=None):
+    async def up(self, ctx, *, arg=None):
         uid = ctx.author.id
         if uid in self.raids:
             return await self.raids[uid].up_command(ctx, arg)
