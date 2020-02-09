@@ -707,7 +707,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             self.closed = True
 
         ups = '\n'.join(self.ups)
-        await self.raid.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) (or an admin) **ended** the raid: {self.raid_name}.{DBL_BREAK}**Declared Pokémon:**\n{ups}")
+        await self.cog.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) (or an admin) **ended** the raid: {self.raid_name}.{DBL_BREAK}**Declared Pokémon:**\n{ups}")
 
         if was_closed:
             if immediately:
