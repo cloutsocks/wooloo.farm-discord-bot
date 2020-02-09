@@ -66,7 +66,7 @@ class Cog(commands.Cog):
             host_id integer not null,
             guild_id integer not null,
             raid_name text not null,
-            mode integer not null default 1,
+            mode integer not null,
             private integer not null,
             no_mb integer not null,
             channel_id integer not null,
