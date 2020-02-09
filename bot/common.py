@@ -35,7 +35,7 @@ EMOJI = {
     'heimlichegg': '<:heimlichandegg:671398032780165121>',
 
     'flop': '<:woolooflop:661638062119452677>',
-    'wooloo': '<:wooloo:650911948757532672>',
+    'wooloo': '<:wooloo:676028019130892318>',
     'honk': '<:honks:656493643690934273>',
     'wuwu': '<:wuwu:650913724068134923>',
     'wooloo_fast': '<a:wooloofast:652220524138725376>',

@@ -51,7 +51,6 @@ def has_guild_permissions(*, check=all, **perms):
 
 # These do not take channel overrides into account
 
-
 def is_jacob():
     def predicate(ctx):
         return ctx.message.author.id in creators
@@ -66,8 +65,14 @@ def is_mod():
 
 def is_bot_admin():
     async def predicate(ctx):
-        # todo check ctx.bot.config.admin_roles
-        return wooloo_staff_id(ctx.author.id) or await check_guild_permissions(ctx, {'administrator': True})
+        if wooloo_staff_id(ctx.author.id):
+            return True
+
+        roles = ctx.author.roles
+        if any(role in roles for role in ctx.bot.raid_cog.admin_roles):
+            return True
+
+        return await check_guild_permissions(ctx, {'administrator': True})
     return commands.check(predicate)
 
 

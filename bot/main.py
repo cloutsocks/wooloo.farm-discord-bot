@@ -29,8 +29,9 @@ class WoolooBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=command_prefixes)
 
+        # todo _cog suffix
         self.trainers = None
-        self.raid = None
+        self.raid_cog = None
         self.misc = None
 
         self.wfr = {}

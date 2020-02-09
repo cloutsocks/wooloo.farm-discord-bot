@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 import checks
-from common import send_message, EMOJI
+from common import send_message, EMOJI, FIELD_BREAK
 
 
 class Misc(commands.Cog):
@@ -30,19 +30,19 @@ class Misc(commands.Cog):
     async def raffle(self, ctx, n:int, msg_id:int, channel_id:int = 663479080192049172):
         channel = self.bot.get_channel(channel_id)
         msg = await channel.fetch_message(msg_id)
-        # todo fix this
-        reaction = msg.reactions[0]
-        users = await reaction.users().flatten()
-        if len(users) <= n:
-            # everyone is a winner!
-            winners = users
-        else:
-            winners = random.sample(users, n)
 
-        names = ', '.join([str(winner) for winner in winners])
-        mentions = ' '.join([str(winner.mention) for winner in winners])
+        for reaction in msg.reactions:
+            users = await reaction.users().flatten()
+            if len(users) <= n:
+                # everyone is a winner!
+                winners = users
+            else:
+                winners = random.sample(users, n)
 
-        await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```{mentions}```')
+            names = ', '.join([str(winner) for winner in winners])
+            mentions = ' '.join([str(winner.mention) for winner in winners])
+
+            await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```{mentions}```')
 
     @commands.command()
     async def pet(self, ctx):
@@ -100,6 +100,15 @@ class Misc(commands.Cog):
     async def say(self, ctx, channel:discord.TextChannel, *, arg):
         await channel.send(arg)
         await ctx.message.add_reaction('✅')
+
+    @commands.command()
+    @checks.is_jacob()
+    async def debugsay(self, ctx):
+        pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
+
+        ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit <https://discord.gg/wooloo> _{FIELD_BREAK}'
+        await ctx.channel.send(
+                    f"{FIELD_BREAK}{EMOJI['join']} <@{ctx.author.id}> has joined the raid! {pls_read}\nsome cool info{FIELD_BREAK}{ad_message}")
 
 
 def setup(bot):

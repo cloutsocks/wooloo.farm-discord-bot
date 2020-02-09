@@ -1,32 +1,33 @@
 from common import EMOJI, enquote
 
+# `.host <mode> <channel name>`, where mode is set to `ffa` or `queue` (defaults to `queue` if omitted)
 
 CREATE_HELP = '''_Creating a Raid_
-`.host <mode> <channel name>`, where mode is set to `ffa` or `queue` (defaults to `queue` if omitted)
+`.host <channel name>`
+**+** _optional:_ add `ffa` to `<channel name>` to disable managed queues
 **+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
 **+** _optional:_ `.host <channel name> max=20` to limit raiders
 **+** _optional:_ add `no mb` to disable priority masterball raiders
 **+** _optional:_ add `private` to hide the code from lurkers
 **+** _optional:_ add `locked` lock the raid until you unlock with `.lock`'''
 
-HOST_COMMANDS = '''`.host help` shows these commands
-`.fc <@user>` displays FC/IGN/Switch name
-`.queue` / `.q` shows current queue in channel publicly
-`.round <4 digit code>` moves to next round (_optionally_ reuses the code with `.round`)
-`.skip @user` skips replaces raider this round
-`.remove @user` removes (+skips) raider from this raid (they can't rejoin!)
-`.block @user` removes (+skips) raider from **all** of your raids
-`.group <msg>` pings everyone in the current round with a message
-`.end` ends raid, DMs a list of users for cleaning your friend list
-`.pin` pins last message
-`.unpin <#>` unpins message
-`.max <#>` sets max participants
-`.lock` temporarily stops new raiders from joining (doesn't stop the raid)
-`.private` toggles private mode (hides codes from lurkers)
-`.qfc` shows the current queue WITH FC/Switch name
-[**NEW**]
-`.poll <poll message> votes=🐄,🐈,🐖,🦌` makes poll with reactions
-`.up <pokémon>` sets which pokémon you're hosting
+HOST_COMMANDS = '''`.host help` to show these commands
+`.fc <@user>` display FC / IGN / Switch Name
+`.queue` / `.q` show the current queue
+`.qfc` show the queue with FC / IGN
+`.round <4 digit code>` to start a new round (you can re-use the last code by just typing `.round`)
+`.skip @user` to skip & replace someone in the current round
+`.remove @user` to remove a user from this raid (they cannot rejoin!)
+`.block @user` to remove a user from **all** of your raids
+`.group <msg>` to ping everyone in the current round with a message
+`.pin` to pin your last message
+`.unpin <#>` to unpin a message
+`.max <#>` to adjust max raiders
+`.lock` to temporarily prevent new raiders from joining (without stopping the raid)
+`.private` to toggle a private raid (hide the code from lurkers)
+`.poll <poll message> votes=🐄,🐈,🐖` to make a poll
+`.end` to end the raid
+
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the botte, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''
@@ -111,8 +112,9 @@ _Commands_
 
 {EMOJI['check']} **1**)  you can `.remove` / `.block` someone for **any reason**, no questions asked! don't hesitate
 {EMOJI['check']} **2**)  if someone is unnecessarily greedy, hostile, joins out of order, spammy or worse - just `.block` them
-{EMOJI['check']} **3**)  **do not go afk when hosting!** _you cannot pause raids._
+{EMOJI['check']} **3**)  **do not go afk when hosting!** _you cannot pause raids._ if other users go afk before you return, the whole thing falls apart.
 {EMOJI['check']} **4**)  you can, however, `.end` the raid and create a new one when you're back! it'll work just as good :))
+{EMOJI['check']} **5**)  `.skip` `.remove` or `.block` anyone who is afk during their turn (removed & blocked users **cannot rejoin**)
 ''']
 
 
@@ -134,7 +136,7 @@ def make_error_msg(err, uid):
         msg = 'You are currently banned from hosting raids on the server. You will be able to join raids, but you cannot host your own.'
 
     elif err == 'WF_BAN':
-        msg = '''You will not be able to join or host any raids with the wooloo.farm bot as you are banned from the wooloo.farm server. Please do not contact this server's staff about this as they are not responsible for your banning, nor can they undo it. If you haven't visited the wooloo.farm server, it means you were banned pre-emptively for conduct on another server.
+        msg = '''You will not be able to join or host any raids with the wooloo.farm bot as you are banned from wooloo.farm; we could not authenticate your raid account. Please do not contact this server's staff about this as they are not responsible for your banning, nor can they undo it. If you haven't visited the wooloo.farm server, it means you were banned pre-emptively for conduct on another server.
 
 If you wish to appeal your wooloo.farm ban, you must do all of the following:
 

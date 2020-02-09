@@ -23,6 +23,16 @@ async def get_user_by_credential(realm, identifier, endpoint=ENDPOINT):
         return await r.json()
 
 
+async def has_wf_ban(uid):
+    async with aiohttp.ClientSession() as session:
+        r = await session.get('https://discord-removal-appeals.wooloo.farm/_check',
+                              params={'id': uid})
+        if r.status not in (204, 404):
+            r.raise_for_status()
+
+        return r.status == 204
+
+
 def has_raid_info(profile):
     if not profile:
         return False, 'WF_NO_ACCOUNT'
@@ -155,6 +165,10 @@ class Trainers(commands.Cog):
             return hri, err
 
         # todo check block list
+
+        wf_ban = await has_wf_ban(member.id)
+        if wf_ban:
+            return False, 'WF_BAN'
 
         return True, None
 

@@ -14,8 +14,7 @@ from trainers import ign_as_text, fc_as_text
 
 from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
                     DEFAULT, LOCKED, CLOSED, \
-                    FLEXIBLE, FFA, QUEUE, \
-                    MAX_RAIDS
+                    FLEXIBLE, FFA, QUEUE
 
 from .raid import Raid, RaidRecord
 
@@ -33,9 +32,12 @@ class Cog(commands.Cog):
         self.listing_channel = None
         self.thanks_channel = None
         self.log_channel = None
-        self.breakroom = None
+        self.announce_channels = []
+        self.admin_roles = []
         self.creating_enabled = True
         self.loaded = False
+        self.max_raids = 10
+        self.guest_server = False
 
         self.raids = {}
 
@@ -250,9 +252,9 @@ _Managing a Raid_
 '''
             return await send_message(ctx, msg)
 
-        if len(self.raids) >= MAX_RAIDS:
+        if len(self.raids) >= self.max_raids:
             return await send_message(ctx,
-                                      f'Unfortunately, we already have the maximum number of **{MAX_RAIDS}** raids being hosted.',
+                                      f'Unfortunately, we already have the maximum number of **{self.max_raids}** raids being hosted.',
                                       error=True)
 
         uid = ctx.author.id
@@ -366,7 +368,7 @@ _Managing a Raid_
         if uid in self.raids:
             return await self.raids[uid].up_command(ctx, arg)
 
-        return await send_message(ctx, RAID_NOT_FOUND, error=True)
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
     '''
     host moderation
@@ -432,7 +434,7 @@ _Managing a Raid_
         mention_id = int(match.group(1))
         member = ctx.message.guild.get_member(mention_id)
         if not member:
-            return await send_message(ctx, f'Could not remove user! Please tag the mods to manually intervene.',
+            return await send_message(ctx, f'Could not remove user! Please contact the mods to manually intervene.',
                                       error=True)
 
         if member == self.bot.user or member.id == target_raid.host_id:
@@ -440,6 +442,9 @@ _Managing a Raid_
 
         if action == 'skip':
             return await target_raid.skip(member, ctx)
+
+        if member.id in checks.wooloo_staff:
+            return await ctx.send(f'You cannot remove wooloo.farm staff.')
 
         if action == 'remove':
             return await target_raid.kick(member, ctx)
@@ -859,10 +864,7 @@ _Managing a Raid_
                 msg = await channel.send('', embed=e)
                 for reaction in emoji:
                     await msg.add_reaction(reaction.strip('<> '))
-        if self.breakroom:
-            msg = await self.breakroom.send('', embed=e)
-            for reaction in emoji:
-                await msg.add_reaction(reaction.strip('<> '))
+
         await ctx.send('Sent!')
 
     @checks.is_bot_admin()
@@ -876,8 +878,7 @@ _Managing a Raid_
         for channel in self.category.text_channels:
             if channel.name[0] in [RAID_EMOJI, LOCKED_EMOJI]:
                 await channel.send(msg)
-        if self.breakroom:
-            await self.breakroom.send(msg)
+
         await ctx.send('Sent!')
 
     @checks.is_bot_admin()
@@ -909,6 +910,9 @@ _Managing a Raid_
             self.guild.get_member(raid.host_id): discord.PermissionOverwrite(send_messages=True, add_reactions=True)
         }
 
+        for role in self.admin_roles:
+            overwrites[role] = discord.PermissionOverwrite(send_messages=True, add_reactions=True)
+
         # todo ban list
 
         topic = 'please read the pinned messages before raiding'
@@ -926,11 +930,17 @@ _Managing a Raid_
         self.category = self.bot.get_channel(int(self.bot.config['raids_cid']))
         self.archive = self.bot.get_channel(int(self.bot.config['archive_cid']))
         self.guild = self.category.guild
-        self.listing_channel = discord.utils.get(self.guild.text_channels, name='active-raids')
-        self.thanks_channel = discord.utils.get(self.guild.text_channels, name='raid-thanks')
-        self.log_channel = discord.utils.get(self.guild.text_channels, name='raid-log')
-        self.breakroom = discord.utils.get(self.guild.text_channels, name='raid-chat')
-        print(f'Bound to {self.category.id}', self.category, self.guild, self.listing_channel)
+
+        self.listing_channel = self.bot.get_channel(int(self.bot.config['listing_channel']))
+        self.thanks_channel = self.bot.get_channel(int(self.bot.config['thanks_channel']))
+        self.log_channel = self.bot.get_channel(int(self.bot.config['log_channel']))
+        self.announce_channels = [self.bot.get_channel(int(cid)) for cid in self.bot.config['announce_channels']]
+
+        self.admin_roles = [self.guild.get_role(int(rid)) for rid in self.bot.config['raid_admin_roles']]
+        self.max_raids = self.bot.config['max_raids']
+
+        self.guest_server = self.bot.config['guest_server']
+        print('[CONFIG] Loaded')
 
 
 def setup(bot):

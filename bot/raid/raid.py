@@ -15,8 +15,7 @@ from trainers import ign_as_text, fc_as_text
 from collections import namedtuple
 from .pool import Pool
 from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
-                    FLEXIBLE, FFA, QUEUE, \
-                    MAX_RAIDS
+                    FLEXIBLE, FFA, QUEUE
 
 
 RaidRecord = namedtuple('RaidRecord',
@@ -223,9 +222,9 @@ Are you sure you want to continue?
             if self.confirmed or self.channel:
                 return
 
-            if len(self.cog.raids) >= MAX_RAIDS:
+            if len(self.cog.raids) >= self.cog.max_raids:
                 return await self.cog.cancel_before_confirm(self, channel_ctx,
-                                                             f'Unfortunately, we already have the maximum number of **{MAX_RAIDS}** raids being hosted. Please wait a bit and try again later.')
+                                                             f'Unfortunately, we already have the maximum number of **{self.cog.max_raids}** raids being hosted. Please wait a bit and try again later.')
 
             # todo verify can host?
             await self.cog.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) has created a new raid: {self.raid_name}.")
@@ -624,6 +623,10 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
             await self.update_channel_emoji()
 
+            # repeated action workaround discord
+            await self.channel.set_permissions(member, overwrite=None)
+
+
     async def send_join_msg(self, member, join_type):
 
         profile = await self.bot.trainers.get_wf_profile(member.id)
@@ -631,11 +634,15 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
 
+        ad_message = ''
+        if self.cog.guest_server:
+            ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit <https://discord.gg/wooloo> _{FIELD_BREAK}'
+
         if join_type == 'pb':
             if member.id not in self.pool.join_history:
                 await self.cog.log_channel.send(f"{show_member_for_log(member)} has joined raid {self.raid_name}.\n{profile_info}")
                 await self.channel.send(
-                    f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! {pls_read}\n{profile_info}{FIELD_BREAK}")
+                    f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! {pls_read}\n{profile_info}{FIELD_BREAK}{ad_message}")
             else:
                 await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!")
 
@@ -719,6 +726,10 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             self.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
             self.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
         }
+
+        for role in self.cog.admin_roles:
+            overwrites[role] = discord.PermissionOverwrite(send_messages=True, add_reactions=True)
+
         await self.channel.edit(name=f'{CLOSED_EMOJI}{self.channel_name[1:]}', overwrites=overwrites)
 
         if not immediately:
