@@ -1,13 +1,9 @@
-import asyncio
+import difflib
 import re
 import sys
 import traceback
 
 import discord
-import copy
-import difflib
-
-from discord.ext import commands
 
 idPattern = re.compile(r'<@!?(\d+?)>')
 
@@ -35,8 +31,9 @@ ICON_ATTACK = '⚔'
 ICON_CLOSE = '❌'
 
 EMOJI = {
-    'nonono': '<a:nononohoney:660738866654740480>',
-    'heimlichegg': '<:heimlichandegg:656164155069562881>',
+    'nonono': '<a:nononohoney:671398010281787452>',
+    'heimlichegg': '<:heimlichandegg:671398032780165121>',
+
     'flop': '<:woolooflop:661638062119452677>',
     'wooloo': '<:wooloo:650911948757532672>',
     'honk': '<:honks:656493643690934273>',
@@ -75,8 +72,10 @@ ANNOUNCE_EMOJI = ['<:wuwu:650913724068134923>',
 escuchameUrl = 'https://i.imgur.com/dJGmQXr.png'
 pokeballUrl = 'http://play.pokemonshowdown.com/sprites/itemicons/poke-ball.png'
 
+
 def strip_extra(s):
     return re.sub('[^\sA-Za-z]+', '', s)
+
 
 def resolve_mention(server, query, getId=True, useNicks=False, stripExtra=False):
     if not query:

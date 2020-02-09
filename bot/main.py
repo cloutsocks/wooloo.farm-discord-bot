@@ -1,27 +1,20 @@
 import json
 import os
-import asyncio
-import random
-import secrets
-import discord
-import logging
-import traceback
 import sys
-import sqlite3
 import time
-import error
+import traceback
+
+import discord
+from discord.ext import commands
 
 import checks
-
-from common import idPattern, send_message
-from discord.ext import commands
 
 initial_extensions = (
     'common',
     'error',
     'trainers',
     'misc',
-    'raid',
+    'raid.cog',
 )
 
 
@@ -35,8 +28,6 @@ def command_prefixes(bot, message):
 class WoolooBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=command_prefixes)
-
-        # self.trainerdb = sqlite3.connect('data/trainers.db')
 
         self.trainers = None
         self.raid = None
@@ -64,11 +55,13 @@ bot.help_command = None
 # async def debug_restrict_jacob(ctx):
 #     return ctx.message.author.id == 232650437617123328 or ctx.message.author.id == 340838512834117632
 
+
 @bot.event
 async def on_ready():
     print('Logged in as {0.user}'.format(bot))
     playing = discord.Game(name='with other Wooloo')
     await bot.change_presence(activity=playing)
+
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -82,11 +75,14 @@ async def on_reaction_add(reaction, user):
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user or message.guild is None:
+    if message.author == bot.user:
+        return
+
+    uid = message.author.id
+    if message.guild is None and uid not in checks.creators:
         return
 
     await bot.process_commands(message)
-    uid = message.author.id
     if uid in bot.wfm:
         waiter = bot.wfm[uid]
         if waiter['channel'] != message.channel:

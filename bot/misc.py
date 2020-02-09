@@ -1,16 +1,11 @@
-import aiohttp
 import discord
 import random
-import math
-import gzip
-import json
-import time
-import secrets
+
+import discord
+from discord.ext import commands
 
 import checks
-from common import idPattern, send_message, resolve_mention, send_user_not_found, \
-    EMOJI, TYPE_COLORS, DBL_BREAK, INFO_BLUE
-from discord.ext import commands
+from common import send_message, EMOJI
 
 
 class Misc(commands.Cog):
@@ -29,7 +24,8 @@ class Misc(commands.Cog):
         message = await channel.fetch_message(payload.message_id)
         await message.remove_reaction(payload.emoji, user)
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_wooloo_farm()
+    @checks.is_bot_admin()
     @commands.command()
     async def raffle(self, ctx, n:int, msg_id:int, channel_id:int = 663479080192049172):
         channel = self.bot.get_channel(channel_id)
@@ -46,7 +42,7 @@ class Misc(commands.Cog):
         names = ', '.join([str(winner) for winner in winners])
         mentions = ' '.join([str(winner.mention) for winner in winners])
 
-        await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```\`\`\`{mentions}\`\`\````')
+        await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```{mentions}```')
 
     @commands.command()
     async def pet(self, ctx):
@@ -60,7 +56,7 @@ class Misc(commands.Cog):
             msg = f'''{em}💙'''
         await ctx.send(f'{msg} _\\*is pet\\* _ x {self.pets}')
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_bot_admin()
     @commands.command()
     async def maxpets(self, ctx, *, arg):
         try:
@@ -69,13 +65,14 @@ class Misc(commands.Cog):
             return await send_message(ctx, 'Type a number.', error=True)
         await ctx.message.add_reaction('✅')
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_bot_admin()
     @commands.command()
     async def resetpets(self, ctx):
         self.pets = 0
         await ctx.send('Done.')
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_wooloo_farm()
+    @checks.is_bot_admin()
     @commands.command()
     async def gohome(self, ctx):
         await self.bot.get_channel(652367800912052244).send(f'''pls remember to move off topic chat to <#649042720458932234> ! so we can keep this channel about raiding {EMOJI['flop']}''')
@@ -98,7 +95,7 @@ class Misc(commands.Cog):
     async def repeat(self, ctx, *, arg):
         await ctx.send(arg)
 
-    @commands.has_permissions(administrator=True)
+    @checks.is_bot_admin()
     @commands.command()
     async def say(self, ctx, channel:discord.TextChannel, *, arg):
         await channel.send(arg)

@@ -1,7 +1,7 @@
-import traceback
 import sys
+import traceback
+
 from discord.ext import commands
-import discord
 
 """
 If you are not using this inside a cog, add the event decorator e.g:
