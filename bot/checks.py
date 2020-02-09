@@ -37,7 +37,7 @@ def has_guild_permissions(*, check=all, **perms):
 
 def is_jacob():
     def predicate(ctx):
-        return ctx.message.author.id in ctx.bot.config["creator_uids"]
+        return any(ctx.message.author.id == int(uid) for uid in ctx.bot.config["creator_uids"])
     return commands.check(predicate)
 
 
@@ -49,13 +49,13 @@ def is_mod():
 
 def is_bot_admin():
     async def predicate(ctx):
-        return ctx.author.id in ctx.bot.config["staff_uids"] or await check_guild_permissions(ctx, {'administrator': True})
+        return any(ctx.author.id == int(uid) for uid in ctx.bot.config["staff_uids"]) or await check_guild_permissions(ctx, {'administrator': True})
     return commands.check(predicate)
 
 
 def is_wooloo_staff():
     async def predicate(ctx):
-        return ctx.author.id in ctx.bot.config["staff_uids"]
+        return any(ctx.author.id == int(uid) for uid in ctx.bot.config["staff_uids"])
     return commands.check(predicate)
 
 
