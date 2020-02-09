@@ -25,7 +25,6 @@ HOST_COMMANDS = '''`.host help` shows these commands
 `.private` toggles private mode (hides codes from lurkers)
 `.qfc` shows the current queue WITH FC/Switch name
 [**NEW**]
-`.poll <poll message> votes=🐄,🐈,🐖,🦌` to make a poll with reactions
 `.poll <poll message> votes=🐄,🐈,🐖,🦌` makes poll with reactions
 `.up <pokémon>` sets which pokémon you're hosting
 '''
