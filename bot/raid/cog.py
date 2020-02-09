@@ -52,9 +52,7 @@ class Cog(commands.Cog):
     async def on_load(self):
         self.loaded = False
 
-        bound = self.bind_to_categories()
-        # if bound:
-        #     await self.clear_channels_dirty()
+        self.configure()
 
         print('[DB] Init')
         self.make_db()
@@ -924,34 +922,15 @@ _Managing a Raid_
                                                        topic=topic)
         return channel
 
-    def bind_to_categories(self):
-        if not self.bot.is_ready():
-            return False
-
-        raids_cid = 661468408856051733 # test
-        archive_cid = 666527061673771030 # test
-
-        # raids_cid = 661425972158922772  # live
-        # archive_cid = 652579764837679145  # live
-
-        # raids_cid = 669605813727395864 # demo
-        # archive_cid = 669605829984387098 # demo
-
-        try:
-            self.category = self.bot.get_channel(raids_cid)
-            self.archive = self.bot.get_channel(archive_cid)
-            self.guild = self.category.guild
-            self.listing_channel = discord.utils.get(self.guild.text_channels, name='active-raids')
-            self.thanks_channel = discord.utils.get(self.guild.text_channels, name='raid-thanks')
-            self.log_channel = discord.utils.get(self.guild.text_channels, name='raid-log')
-            self.breakroom = discord.utils.get(self.guild.text_channels, name='raid-chat')
-            print(f'Bound to {raids_cid}', self.category, self.guild, self.listing_channel)
-
-        except AttributeError:
-            print(f'Could not bind to {raids_cid}')
-            return False
-
-        return True
+    def configure(self):
+        self.category = self.bot.get_channel(self.bot.config['raids_cid'])
+        self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
+        self.guild = self.category.guild
+        self.listing_channel = discord.utils.get(self.guild.text_channels, name='active-raids')
+        self.thanks_channel = discord.utils.get(self.guild.text_channels, name='raid-thanks')
+        self.log_channel = discord.utils.get(self.guild.text_channels, name='raid-log')
+        self.breakroom = discord.utils.get(self.guild.text_channels, name='raid-chat')
+        print(f'Bound to {raids_cid}', self.category, self.guild, self.listing_channel)
 
 
 def setup(bot):
