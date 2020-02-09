@@ -71,13 +71,6 @@ class Misc(commands.Cog):
         self.pets = 0
         await ctx.send('Done.')
 
-    @checks.is_wooloo_farm()
-    @checks.is_bot_admin()
-    @commands.command()
-    async def gohome(self, ctx):
-        await self.bot.get_channel(652367800912052244).send(f'''pls remember to move off topic chat to <#649042720458932234> ! so we can keep this channel about raiding {EMOJI['flop']}''')
-        await ctx.message.add_reaction('✅')
-
     @commands.command()
     async def poll(self, ctx, *, arg):
         emoji = []
