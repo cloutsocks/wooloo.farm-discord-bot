@@ -2,7 +2,7 @@ from common import EMOJI, enquote
 
 
 CREATE_HELP = '''_Creating a Raid_
-`.host <mode> <channel name>`, where mode is set to `flexible`, `ffa`, or `queue` (defaults to `flexible` if omitted)
+`.host <mode> <channel name>`, where mode is set to `ffa` or `queue` (defaults to `queue` if omitted)
 **+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
 **+** _optional:_ `.host <channel name> max=20` to limit raiders
 **+** _optional:_ add `no mb` to disable priority masterball raiders

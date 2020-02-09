@@ -259,12 +259,12 @@ _Managing a Raid_
         if uid in self.raids:
             return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
 
-        mode = FLEXIBLE
+        mode = QUEUE
         try:
             mode_arg, arg = arg.split(' ', 1)
             try:
                 mode = {
-                    'flexible': FLEXIBLE,
+                    # 'flexible': FLEXIBLE,
                     'ffa': FFA,
                     'queue': QUEUE,
                 }[mode_arg.lower()]

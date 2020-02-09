@@ -160,8 +160,7 @@ class Raid(object):
     def destroy(self):
         self.bot.clear_wait_fors(self.host_id)
 
-    async def send_confirm_prompt(self, ctx, raid_name, channel_name, mode=FLEXIBLE, desc=None, max_joins=30, private=False, no_mb=False, locked=False):
-
+    async def send_confirm_prompt(self, ctx, raid_name, channel_name, mode, desc, max_joins, private, no_mb, locked):
         async with self.lock:
             if self.confirmed or self.channel or self.wfr_message:
                 return
