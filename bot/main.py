@@ -99,9 +99,9 @@ async def on_message(message):
 
 
 with open(os.environ.get('WOOLOOBOT_CONFIG_PATH', '../config/discord_app.json')) as f:
-    config = json.load(f)
+    bot.config = json.load(f)
 
-if not config.get("disable_hot_reload", False):
+if not bot.config.get("disable_hot_reload", False):
     @bot.command(name='reloadall', aliases=['reall', 'ra'])
     @checks.is_jacob()
     async def _reloadall(ctx, arg=None):
@@ -109,7 +109,6 @@ if not config.get("disable_hot_reload", False):
 
         bot.wfm = {}
         bot.wfr = {}
-        bot.config = config
         try:
             for extension in initial_extensions:
                 bot.unload_extension(extension)

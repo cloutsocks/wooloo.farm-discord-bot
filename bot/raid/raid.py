@@ -20,7 +20,7 @@ from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
 
 
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, mode, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, mode, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed')
 
 
 def show_member_for_log(member):
@@ -142,7 +142,7 @@ class Raid(object):
             if r.pool:
                 self.pool.__dict__ = json.loads(r.pool)
             self.group = json.loads(r.raid_group) if r.raid_group else []
-            self.ups = json.load(r.ups)
+            self.ups = json.loads(r.ups)
 
             self.start_time = r.start_time
             self.time_saved = r.time_saved
@@ -172,7 +172,11 @@ class Raid(object):
             self.private = private
             self.no_mb = no_mb
             self.locked = locked
-            options = [f'''**{['flexible', 'FFA', 'queue'][self.mode]}**''']
+            options = ['**' + {
+                FLEXIBLE: 'flexible',
+                FFA: 'FFA',
+                QUEUE: 'queue',
+            }[self.mode] + '**']
 
             if self.private:
                 options.append('**private** (hidden code)')

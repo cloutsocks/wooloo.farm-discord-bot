@@ -144,7 +144,7 @@ class Cog(commands.Cog):
             try:
                 record, can_save = await raid.as_record()
             except Exception as e:
-                print(f'[Raid Serialize] Could not serialize raid {raid.name}; this will be lost! Error: {type(e).__name__}, {e}')
+                print(f'[Raid Serialize] Could not serialize raid {raid.raid_name}; this will be lost! Error: {type(e).__name__}, {e}')
                 continue
 
             if not can_save:
@@ -923,14 +923,14 @@ _Managing a Raid_
         return channel
 
     def configure(self):
-        self.category = self.bot.get_channel(self.bot.config['raids_cid'])
-        self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
+        self.category = self.bot.get_channel(int(self.bot.config['raids_cid']))
+        self.archive = self.bot.get_channel(int(self.bot.config['archive_cid']))
         self.guild = self.category.guild
         self.listing_channel = discord.utils.get(self.guild.text_channels, name='active-raids')
         self.thanks_channel = discord.utils.get(self.guild.text_channels, name='raid-thanks')
         self.log_channel = discord.utils.get(self.guild.text_channels, name='raid-log')
         self.breakroom = discord.utils.get(self.guild.text_channels, name='raid-chat')
-        print(f'Bound to {raids_cid}', self.category, self.guild, self.listing_channel)
+        print(f'Bound to {self.category.id}', self.category, self.guild, self.listing_channel)
 
 
 def setup(bot):
