@@ -683,8 +683,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             replacement = self.pool.get_next(advance=True)
             self.group += replacement
 
-            # If a Master Ball user was skipped, put them into the regular queue.
-            self.pool.q.append(uid)
+            if uid not in self.pool.kicked:
+                # If a Master Ball user was skipped, put them into the regular queue.
+                self.pool.q.append(uid)
 
             if self.private:
                 user = self.bot.get_user(replacement[0][1])
