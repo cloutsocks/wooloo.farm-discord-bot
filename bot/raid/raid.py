@@ -826,15 +826,19 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
         if self.closed:
             return
 
+        old_channel_name = self.channel_name
+
         emoji = self.channel_name[0]
         if self.locked:
             if emoji != LOCKED_EMOJI:
-                await self.channel.edit(name=f'{LOCKED_EMOJI}{self.channel_name[1:]}')
-
+                self.channel_name = f'{LOCKED_EMOJI}{self.channel_name[1:]}'
         else:
             pool_size = self.pool.size()
             if pool_size >= self.max_joins:
                 if emoji != LOCKED_EMOJI:
-                    await self.channel.edit(name=f'{LOCKED_EMOJI}{self.channel_name[1:]}')
+                    self.channel_name = f'{LOCKED_EMOJI}{self.channel_name[1:]}'
             elif emoji != RAID_EMOJI:
-                await self.channel.edit(name=f'{RAID_EMOJI}{self.channel_name[1:]}')
+                self.channel_name = f'{RAID_EMOJI}{self.channel_name[1:]}'
+
+        if old_channel_name != self.channel_name:
+            await self.channel.edit(name=self.channel_name)
