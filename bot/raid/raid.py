@@ -641,9 +641,9 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
             pls_read = f'''\nPlease read **pinned messages**.'''
 
             self.join_increment += 1
-            if self.join_increment >= 5:
+            if self.join_increment >= 4:
                 self.join_increment = 0
-                ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit `https://discord.gg/wooloo`_{FIELD_BREAK}'
+                ad_message = f'\n_This botte was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor botte suggestions, please visit <https://discord.gg\wooloo> _{FIELD_BREAK}'
         else:
             pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
 
@@ -653,19 +653,16 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
                 await self.channel.send(
                     f"{FIELD_BREAK}{EMOJI['join']} <@{member.id}> has joined the raid! {pls_read}\n{profile_info}{FIELD_BREAK}{ad_message}")
             else:
-                await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!")
+                await self.channel.send(f"{EMOJI['join']} <@{member.id}> has rejoined the raid!{FIELD_BREAK}{ad_message}")
 
         elif join_type == 'mb':
             if member.id not in self.pool.join_history:
                 await self.cog.log_channel.send(f"{show_member_for_log(member)} has joined raid {self.raid_name} **with a master ball**.\n{profile_info}")
                 await self.channel.send(
-                    f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to block them. {pls_read}\n{profile_info}{FIELD_BREAK}")
+                    f"{EMOJI['masterball']} <@{member.id}> has joined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to block them. {pls_read}\n{profile_info}{FIELD_BREAK}{ad_message}")
             else:
                 await self.channel.send(
-                    f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
-
-        # elif join_type == 'mb+':
-        #     return await self.channel.send(f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}")
+                    f"{EMOJI['masterball']} <@{member.id}> has rejoined the raid with a **master ball**! They have high priority, so if they do not actually use a master ball, please feel free to remove or block them.{FIELD_BREAK}{ad_message}")
 
     '''
     management
