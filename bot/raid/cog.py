@@ -952,8 +952,6 @@ _Managing a Raid_
         self.announce_channels = [self.bot.get_channel(cid) for cid in self.bot.config['announce_channels']]
 
         self.admin_roles = [self.guild.get_role(rid) for rid in self.bot.config['raid_admin_roles']]
-        self.banned_from_raiding_role = self.guild.get_role(self.bot.config['banned_from_raiding_role'])
-        self.banned_from_hosting_role = self.guild.get_role(self.bot.config['banned_from_hosting_role'])
         self.max_raids = self.bot.config['max_raids']
         print('[CONFIG] Loaded')
 
