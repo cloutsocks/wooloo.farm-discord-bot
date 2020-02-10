@@ -140,7 +140,7 @@ def make_error_msg(err, uid):
 
 If you wish to appeal your wooloo.farm ban, you must do all of the following:
 
-1. Fill out the appeal form (which will show your ban reason): https://goto.wooloo.farm/removal-appeal
+1. Fill out the appeal form (which will show your ban reason): <https://goto.wooloo.farm/removal-appeal>
 2. Join the holding server so that a moderator may DM you with a response: https://discord.gg/xFZ3hYC'''
 
     else:
