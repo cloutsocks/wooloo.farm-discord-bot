@@ -864,6 +864,12 @@ _Managing a Raid_
         e = discord.Embed(title='Botte Announcement!', description=f'''{EMOJI['honk']} {arg}''', color=color)
         if url:
             e.set_image(url=url)
+
+        for channel in self.announce_channels:
+            msg = await channel.send('', embed=e)
+            for reaction in emoji:
+                await msg.add_reaction(reaction.strip('<> '))
+
         for channel in self.category.text_channels:
             if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCKED_EMOJI):
                 msg = await channel.send('', embed=e)
@@ -880,6 +886,10 @@ _Managing a Raid_
             return
 
         msg = arg
+
+        for channel in self.announce_channels:
+            await channel.send(msg)
+
         for channel in self.category.text_channels:
             if channel.name[0] in [RAID_EMOJI, LOCKED_EMOJI]:
                 await channel.send(msg)
