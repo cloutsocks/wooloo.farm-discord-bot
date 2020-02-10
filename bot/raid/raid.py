@@ -714,7 +714,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
     async def block(self, member, ctx):
         pass
 
-    async def end(self, immediately=False):
+    async def end(self, ctx, immediately=False):
         async with self.lock:
             was_closed = self.closed
             self.closed = True
@@ -729,7 +729,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         await self.channel.trigger_typing()
         overwrites = {
-            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
+            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=not ctx.bot.config["test_mode"], add_reactions=False),
             self.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
         }
 

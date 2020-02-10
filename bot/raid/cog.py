@@ -353,12 +353,12 @@ _Managing a Raid_
         is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
         if uid in self.raids:
             if self.raids[uid].channel == ctx.channel:
-                return await self.raids[uid].end(is_bot_admin and ('immediately' in arg or 'now' in arg))
+                return await self.raids[uid].end(ctx, is_bot_admin and ('immediately' in arg or 'now' in arg))
 
         if is_bot_admin:
             for host_id, raid in self.raids.items():
                 if raid and raid.channel == ctx.channel:
-                    return await raid.end('immediately' in arg or 'now' in arg)
+                    return await raid.end(ctx, 'immediately' in arg or 'now' in arg)
 
         return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
@@ -920,7 +920,7 @@ _Managing a Raid_
             return
 
         overwrites = {
-            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=False),
+            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=not self.bot.config["test_mode"], add_reactions=False),
             self.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
             self.guild.get_member(raid.host_id): discord.PermissionOverwrite(send_messages=True, add_reactions=True)
         }
