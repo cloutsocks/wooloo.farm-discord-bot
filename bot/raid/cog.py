@@ -699,7 +699,7 @@ _Managing a Raid_
             .set_author(name=f'Caught!', icon_url=pokeballUrl)
 
         caught_msg = await ctx.send('', embed=e)
-        for reaction in [':lovehonk:656861100762988567', EMOJI['pokeball']]:
+        for reaction in [EMOJI['lovehonk'], EMOJI['pokeball']]:
             await caught_msg.add_reaction(reaction.strip('<>'))
 
     @commands.command()
