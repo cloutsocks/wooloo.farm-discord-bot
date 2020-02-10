@@ -64,7 +64,7 @@ _Commands_
 {EMOJI['check']} **9**)  don't react to a kick or block! **hosts do not have to explain why they blocked you.** if this happens, please contact mods.
 {EMOJI['check']} **10**)  if you joined with a {EMOJI["pokeball"]}, you can switch to a masterball **once** by going back to <#{active_raids_id}> and clicking the {EMOJI["masterball"]} (but you better use one or you'll get blocked!)
 {EMOJI['check']} **11**)  when you've caught the Pokémon, please write `.caught`!
-{EMOJI['check']} **12**)  please `.pet`. me
+{EMOJI['check']} **12**)  please `.pet` me
 ''',
 
 f'''
@@ -102,7 +102,7 @@ _Commands_
 {EMOJI['check']} **5**)  hosts are completely free to remove users for **any reason whatsoever, no questions asked**! this is their room and they do not have to host you.
 {EMOJI['check']} **6**)  don't react to a kick or block! **hosts do not have to explain why they blocked you.** if this happens, please contact mods.
 {EMOJI['check']} **7**)  when you've caught the Pokémon, please write `.caught`!
-{EMOJI['check']} **8**)  please `.pet`. me
+{EMOJI['check']} **8**)  please `.pet` me
 ''',
 
 f'''

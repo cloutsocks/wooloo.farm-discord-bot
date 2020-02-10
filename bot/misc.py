@@ -71,13 +71,6 @@ class Misc(commands.Cog):
         self.pets = 0
         await ctx.send('Done.')
 
-    @checks.is_wooloo_farm()
-    @checks.is_bot_admin()
-    @commands.command()
-    async def gohome(self, ctx):
-        await self.bot.get_channel(652367800912052244).send(f'''pls remember to move off topic chat to <#649042720458932234> ! so we can keep this channel about raiding {EMOJI['flop']}''')
-        await ctx.message.add_reaction('✅')
-
     @commands.command()
     async def poll(self, ctx, *, arg):
         emoji = []
@@ -101,14 +94,14 @@ class Misc(commands.Cog):
         await channel.send(arg)
         await ctx.message.add_reaction('✅')
 
-    @commands.command()
-    @checks.is_jacob()
-    async def debugsay(self, ctx):
-        pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
-
-        ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit <https://discord.gg/wooloo> _{FIELD_BREAK}'
-        await ctx.channel.send(
-                    f"{FIELD_BREAK}{EMOJI['join']} <@{ctx.author.id}> has joined the raid! {pls_read}\nsome cool info{FIELD_BREAK}{ad_message}")
+    # @commands.command()
+    # @checks.is_jacob()
+    # async def debugsay(self, ctx):
+    #     pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
+    #
+    #     ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit <https://discord.gg/wooloo> _{FIELD_BREAK}'
+    #     await ctx.channel.send(
+    #                 f"{FIELD_BREAK}{EMOJI['join']} <@{ctx.author.id}> has joined the raid! {pls_read}\nsome cool info{FIELD_BREAK}{ad_message}")
 
 
 def setup(bot):

@@ -31,43 +31,32 @@ ICON_ATTACK = '⚔'
 ICON_CLOSE = '❌'
 
 EMOJI = {
-    'nonono': '<a:nononohoney:671398010281787452>',
-    'heimlichegg': '<:heimlichandegg:671398032780165121>',
-
-    'flop': '<:woolooflop:661638062119452677>',
-    'wooloo': '<:wooloo:676028019130892318>',
-    'honk': '<:honks:656493643690934273>',
-    'wuwu': '<:wuwu:650913724068134923>',
-    'wooloo_fast': '<a:wooloofast:652220524138725376>',
-    'discord': '<:discord:667446753003307008>',
-
-    'sword': '<:pkmnsw:667062399345491998>',
-    'shield': '<:pkmnsh:667062399089770521>',
-
-    'join': '<:memberjoin:663542559573803043>',
-    'pin_unread': '<:pinunread:663544333210746902>',
-
-    'skip': '<:skip:662385111060185088>',
-
-    'pokeball': '<:pb:671080407613177934>',
-    'masterball': '<:mb:671080396339019798>',
-    'check': '<:checkfilled:663544333374586900>',
-    'check_empty': '<:checkempty:663544333613531136>'
+    'wuwu': '<:wuwu:676228384615038988>',
+    'flop': '<:woolooflop:676228385642381322>',
+    'wooloo_fast': '<a:wooloofast:676228383528714240>',
+    'wooloo': '<:wooloo:676228383411273769>',
+    'cooloo': '<:woocooloo:676228383457280001>',
+    'stinkey': '<:stinkey:676228383159615520>',
+    'skip': '<:skip:676228383268667452>',
+    'ballguy': '<:PREMIERballguy:676228385927594004>',
+    'sword': '<:pkmnsw:676228382870077471>',
+    'shield': '<:pkmnsh:676228382886723595>',
+    'pin_unread': '<:pinunread:676228383289507881>',
+    'pokeball': '<:pb:676228383201296414>',
+    'nonono': '<a:nononohoney:676228383419662377>',
+    'join': '<:memberjoin:676228383058690108>',
+    'masterball': '<:mb:676228383218204672>',
+    'lovehonk': '<:lovehonk:676228729097289748>',
+    'lily': '<:lily:676228383100764160>',
+    'jacobsdog': '<:jacobsdog:676228383998476318>',
+    'jacob': '<:jacob:676229001416671281>',
+    'honk': '<:honks:676228382996037658>',
+    'elliot': '<:elliot:676228383146770436>',
+    'discord': '<:discord:676228382895243282>',
+    'check': '<:checkfilled:676228383566462976>',
+    'check_empty': '<:checkempty:676228383062884364>',
+    'heimlichegg': '<:heimlichandegg:676228382811226124>',
 }
-
-ANNOUNCE_EMOJI = ['<:wuwu:650913724068134923>',
-    '<:woolooflop:650913724131049501>',
-    '<a:wooloofast:652220524138725376>',
-    '<:woocooloo:656493244930064419>',
-    '<:stinkey:653658038296641537>',
-    '<:squirtle:658799430916374544>',
-    '<:PREMIERballguy:652594607053602826>',
-    '<:jacob:653477874812059649>',
-    '<:jacobsdog:652706135937122318>',
-    '<:elliot:652655772185919488>',
-    '<:lily:652655770869170197>',
-    '<:honks:656493643690934273>'
-]
 
 escuchameUrl = 'https://i.imgur.com/dJGmQXr.png'
 pokeballUrl = 'http://play.pokemonshowdown.com/sprites/itemicons/poke-ball.png'

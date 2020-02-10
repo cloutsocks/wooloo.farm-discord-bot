@@ -37,7 +37,6 @@ class Cog(commands.Cog):
         self.creating_enabled = True
         self.loaded = False
         self.max_raids = 10
-        self.guest_server = False
 
         self.raids = {}
 
@@ -241,7 +240,7 @@ class Cog(commands.Cog):
     @commands.command()
     async def host(self, ctx, *, arg=None):
 
-        if not self.creating_enabled and ctx.author.id != 232650437617123328:
+        if not self.creating_enabled and ctx.author.id not in self.bot.config['creator_ids']:
             return await send_message(ctx, 'Creating new raids is temporarily paused (probably pending a botte update, check the botte status channel).', error=True)
 
         if arg is None or 'help' in arg:
@@ -323,6 +322,7 @@ _Managing a Raid_
 
         self.raids[uid] = Raid(self.bot, self, self.guild, ctx.author.id)
         print('[Raid Creation]', self.raids)
+
         # todo refactor long param list into options dict or namedtuple
         await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, mode, desc, max_joins, private, no_mb, locked)
 
@@ -350,12 +350,12 @@ _Managing a Raid_
     @commands.command(aliases=['end'])
     async def close(self, ctx, arg=''):
         uid = ctx.author.id
-        admin = ctx.author.guild_permissions.administrator
+        is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
         if uid in self.raids:
             if self.raids[uid].channel == ctx.channel:
-                return await self.raids[uid].end(admin and ('immediately' in arg or 'now' in arg))
+                return await self.raids[uid].end(is_bot_admin and ('immediately' in arg or 'now' in arg))
 
-        if admin:
+        if is_bot_admin:
             for host_id, raid in self.raids.items():
                 if raid and raid.channel == ctx.channel:
                     return await raid.end('immediately' in arg or 'now' in arg)
@@ -417,9 +417,9 @@ _Managing a Raid_
         for host_id, raid in self.raids.items():
             if raid and raid.channel == ctx.channel:
                 is_host = ctx.author.id == host_id
-                admin = ctx.author.guild_permissions.administrator
+                is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
 
-                if not admin and not is_host:
+                if not is_bot_admin and not is_host:
                     return await send_message(ctx, 'Host or admin only. Use `.q` instead.', error=True)
                 target_raid = raid
                 break
@@ -443,7 +443,7 @@ _Managing a Raid_
         if action == 'skip':
             return await target_raid.skip(member, ctx)
 
-        if member.id in checks.wooloo_staff:
+        if member.id in self.bot.config['wooloo_staff_ids']:
             return await ctx.send(f'You cannot remove wooloo.farm staff.')
 
         if action == 'remove':
@@ -486,22 +486,28 @@ _Managing a Raid_
 
     @commands.command()
     async def lock(self, ctx):
-        uid = ctx.author.id
-        if uid not in self.raids:
-            return
+        target_raid = None
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+                is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
 
-        raid = self.raids[uid]
-        if raid.channel != ctx.channel:
+                if not is_bot_admin and not is_host:
+                    return
+                target_raid = raid
+                break
+
+        if not target_raid:
             return await send_message(ctx, f'You may only do this in your active raid channel.', error=True)
 
-        raid.locked = not raid.locked
+        target_raid.locked = not target_raid.locked
 
-        if raid.locked:
+        if target_raid.locked:
             msg = 'Raid is now **locked**, the raid will continue but no new raiders will be able to join until you type `.lock` again.'
         else:
             msg = 'Raid is now **unlocked**, new raiders can join again (if there is room).'
 
-        await raid.update_channel_emoji()
+        await target_raid.update_channel_emoji()
         await ctx.send(msg)
 
     @commands.command()
@@ -631,8 +637,8 @@ _Managing a Raid_
 
         for host_id, raid in self.raids.items():
             if raid.channel == ctx.channel:
-                admin = ctx.author.guild_permissions.administrator
-                if admin:
+                is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
+                if is_bot_admin:
                     e = raid.make_queue_embed(mentions=not text, cmd=ctx.invoked_with)
                     return await ctx.send('', embed=e)
                 await ctx.message.add_reaction('✅')
@@ -654,9 +660,9 @@ _Managing a Raid_
         for host_id, raid in self.raids.items():
             if raid and raid.channel == ctx.channel:
                 is_host = ctx.author.id == host_id
-                admin = ctx.author.guild_permissions.administrator
+                is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
 
-                if not admin and not is_host:
+                if not is_bot_admin and not is_host:
                     return await send_message(ctx, 'Host or admin only. Use `.q` instead.', error=True)
 
                 lines = []
@@ -805,7 +811,6 @@ _Managing a Raid_
     #         self.channels.append(channel)
     #
 
-
     @checks.is_jacob()
     @commands.command(name='dangerclearall', aliases=['dangerca'])
     async def clear_all(self, ctx, arg=None):
@@ -927,19 +932,17 @@ _Managing a Raid_
         return channel
 
     def configure(self):
-        self.category = self.bot.get_channel(int(self.bot.config['raids_cid']))
-        self.archive = self.bot.get_channel(int(self.bot.config['archive_cid']))
+        self.category = self.bot.get_channel(self.bot.config['raids_cid'])
+        self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
         self.guild = self.category.guild
 
-        self.listing_channel = self.bot.get_channel(int(self.bot.config['listing_channel']))
-        self.thanks_channel = self.bot.get_channel(int(self.bot.config['thanks_channel']))
-        self.log_channel = self.bot.get_channel(int(self.bot.config['log_channel']))
-        self.announce_channels = [self.bot.get_channel(int(cid)) for cid in self.bot.config['announce_channels']]
+        self.listing_channel = self.bot.get_channel(self.bot.config['listing_channel'])
+        self.thanks_channel = self.bot.get_channel(self.bot.config['thanks_channel'])
+        self.log_channel = self.bot.get_channel(self.bot.config['log_channel'])
+        self.announce_channels = [self.bot.get_channel(cid) for cid in self.bot.config['announce_channels']]
 
-        self.admin_roles = [self.guild.get_role(int(rid)) for rid in self.bot.config['raid_admin_roles']]
+        self.admin_roles = [self.guild.get_role(rid) for rid in self.bot.config['raid_admin_roles']]
         self.max_raids = self.bot.config['max_raids']
-
-        self.guest_server = self.bot.config['guest_server']
         print('[CONFIG] Loaded')
 
 

@@ -80,7 +80,7 @@ async def on_message(message):
         return
 
     uid = message.author.id
-    if message.guild is None and uid not in checks.creators:
+    if message.guild is None and uid not in bot.config['creator_ids']:
         return
 
     await bot.process_commands(message)
@@ -98,11 +98,15 @@ async def on_message(message):
         await waiter['handler'].handle_message(message)
 
 
-
 with open(os.environ.get('WOOLOOBOT_CONFIG_PATH', '../config/discord_app.json')) as f:
     bot.config = json.load(f)
+    for key in ['raids_cid', 'archive_cid', 'listing_channel', 'thanks_channel', 'log_channel']:
+        bot.config[key] = int(bot.config[key])
 
-if not bot.config.get("disable_hot_reload", False):
+    for key in ['announce_channels', 'raid_admin_roles', 'creator_ids', 'wooloo_staff_ids']:
+        bot.config[key] = [int(val) for val in bot.config[key]]
+
+if not bot.config.get('disable_hot_reload', False):
     @bot.command(name='reloadall', aliases=['reall', 'ra'])
     @checks.is_jacob()
     async def _reloadall(ctx, arg=None):

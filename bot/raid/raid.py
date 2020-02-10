@@ -9,7 +9,7 @@ import discord
 import texts
 
 from common import clamp, send_message, pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, \
-    ANNOUNCE_EMOJI, ICON_CLOSE, enquote
+                   ICON_CLOSE, enquote
 from trainers import ign_as_text, fc_as_text
 
 from collections import namedtuple
@@ -59,6 +59,8 @@ class Raid(object):
         self.locked = False
         self.confirmed = False
         self.closed = False
+
+        self.join_increment = 0
 
         self.lock = asyncio.Lock()
 
@@ -159,6 +161,7 @@ class Raid(object):
     def destroy(self):
         self.bot.clear_wait_fors(self.host_id)
 
+    # todo break params into obj
     async def send_confirm_prompt(self, ctx, raid_name, channel_name, mode, desc, max_joins, private, no_mb, locked):
         async with self.lock:
             if self.confirmed or self.channel or self.wfr_message:
@@ -450,7 +453,7 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         self.pool.q.extend(uid for (join_type, uid) in self.group if join_type == 'pb')
         self.group = self.pool.get_next(3, advance=True)
 
-        announcer = random.choice(ANNOUNCE_EMOJI)
+        announcer = EMOJI[random.choice(['wuwu', 'flop', 'wooloo_fast', 'cooloo', 'stinkey', 'ballguy', 'jacob', 'jacobsdog', 'elliot', 'lily', 'honk'])]
         title = f'{announcer} 📣 Round {self.round} Start!'
 
         if self.private:
@@ -632,11 +635,17 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         profile = await self.bot.trainers.get_wf_profile(member.id)
         profile_info = fc_as_text(profile)
 
-        pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
-
         ad_message = ''
-        if self.cog.guest_server:
-            ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit <https://discord.gg/wooloo> _{FIELD_BREAK}'
+
+        if self.bot.config['guest_server']:
+            pls_read = f'''\nPlease read **pinned messages**.'''
+
+            self.join_increment += 1
+            if self.join_increment >= 5:
+                self.join_increment = 0
+                ad_message = f'\n_This bot was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor bot suggestions, please visit `https://discord.gg/wooloo`_{FIELD_BREAK}'
+        else:
+            pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
 
         if join_type == 'pb':
             if member.id not in self.pool.join_history:
