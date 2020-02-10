@@ -261,18 +261,18 @@ _Managing a Raid_
             return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
 
         mode = QUEUE
-        try:
-            mode_arg, arg = arg.split(' ', 1)
-            try:
-                mode = {
-                    # 'flexible': FLEXIBLE,
-                    'ffa': FFA,
-                    'queue': QUEUE,
-                }[mode_arg.lower()]
-            except KeyError:
-                pass
-        except ValueError:
-            pass
+        # try:
+        #     mode_arg, arg = arg.split(' ', 1)
+        #     try:
+        #         mode = {
+        #             # 'flexible': FLEXIBLE,
+        #             'ffa': FFA,
+        #             'queue': QUEUE,
+        #         }[mode_arg.lower()]
+        #     except KeyError:
+        #         pass
+        # except ValueError:
+        #     pass
 
         max_joins = 30
         m = re.search(r'max=(\d*)', arg)

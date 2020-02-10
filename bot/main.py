@@ -22,8 +22,9 @@ def command_prefixes(bot, message):
     return ['.']
 
 
-# live https://discordapp.com/api/oauth2/authorize?client_id=660980949231599646&permissions=2146827601&scope=bot
-# dev  https://discordapp.com/api/oauth2/authorize?client_id=668968686094123030&permissions=2146827601&scope=bot
+# main  https://discordapp.com/api/oauth2/authorize?client_id=660980949231599646&permissions=2146827601&scope=bot
+# dev   https://discordapp.com/api/oauth2/authorize?client_id=668968686094123030&permissions=2146827601&scope=bot
+# guest https://discordapp.com/api/oauth2/authorize?client_id=676241025613824000&permissions=2146827601&scope=bot
 
 class WoolooBot(commands.Bot):
     def __init__(self):
@@ -60,7 +61,9 @@ bot.help_command = None
 @bot.event
 async def on_ready():
     print('Logged in as {0.user}'.format(bot))
-    playing = discord.Game(name='with other Wooloo')
+    # status = 'on wooloo.farm' if bot.config['guest_server'] else 'with other Wooloo'
+    status = 'with other Wooloo'
+    playing = discord.Game(name=status)
     await bot.change_presence(activity=playing)
 
 
