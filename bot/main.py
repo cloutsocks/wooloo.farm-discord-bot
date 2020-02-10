@@ -103,7 +103,7 @@ async def on_message(message):
 
 with open(os.environ.get('WOOLOOBOT_CONFIG_PATH', '../config/discord_app.json')) as f:
     bot.config = json.load(f)
-    for key in ['raids_cid', 'archive_cid', 'listing_channel', 'thanks_channel', 'log_channel']:
+    for key in ['raids_cid', 'archive_cid', 'listing_channel', 'thanks_channel', 'log_channel', 'banned_from_raiding_role', 'banned_from_hosting_role']:
         bot.config[key] = int(bot.config[key])
 
     for key in ['announce_channels', 'raid_admin_roles', 'creator_ids', 'wooloo_staff_ids']:

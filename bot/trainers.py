@@ -156,7 +156,7 @@ class Trainers(commands.Cog):
         # todo maybe has raiders role check
 
         roles = member.roles
-        if discord.utils.get(roles, name='banned from raiding'):
+        if self.bot.banned_from_raiding_role in member.roles:
             return False, 'ROLE_BANNED_FROM_RAIDING'
 
         profile = await self.get_wf_profile(member.id, ctx)
@@ -177,9 +177,9 @@ class Trainers(commands.Cog):
         # todo maybe has raiders role check
 
         roles = member.roles
-        if discord.utils.get(roles, name='banned from raiding'):
+        if self.bot.banned_from_raiding_role in member.roles:
             return False, 'ROLE_BANNED_FROM_RAIDING'
-        if discord.utils.get(roles, name='banned from hosting'):
+        if self.bot.banned_from_hosting_role in member.roles:
             return False, 'ROLE_BANNED_FROM_HOSTING'
 
         profile = await self.get_wf_profile(member.id, ctx)
