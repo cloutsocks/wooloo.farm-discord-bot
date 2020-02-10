@@ -920,13 +920,13 @@ _Managing a Raid_
             return
 
         overwrites = {
-            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=not self.bot.config["test_mode"], add_reactions=False),
-            self.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
-            self.guild.get_member(raid.host_id): discord.PermissionOverwrite(send_messages=True, add_reactions=True)
+            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False if self.bot.config["test_mode"] else None, add_reactions=False),
+            self.guild.me: discord.PermissionOverwrite(send_messages=True, read_messages=True if ctx.bot.config["test_mode"] else None, add_reactions=True),
+            self.guild.get_member(raid.host_id): discord.PermissionOverwrite(send_messages=True, read_messages=True if ctx.bot.config["test_mode"] else None, add_reactions=True)
         }
 
         for role in self.admin_roles:
-            overwrites[role] = discord.PermissionOverwrite(send_messages=True, add_reactions=True)
+            overwrites[role] = discord.PermissionOverwrite(send_messages=True, read_messages=True if ctx.bot.config["test_mode"] else None, add_reactions=True)
 
         # todo ban list
 

@@ -729,12 +729,12 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         await self.channel.trigger_typing()
         overwrites = {
-            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=not ctx.bot.config["test_mode"], add_reactions=False),
-            self.guild.me: discord.PermissionOverwrite(send_messages=True, add_reactions=True),
+            self.guild.default_role: discord.PermissionOverwrite(send_messages=False, read_messages=False if ctx.bot.config["test_mode"] else None, add_reactions=False),
+            self.guild.me: discord.PermissionOverwrite(send_messages=True, read_messages=True if ctx.bot.config["test_mode"] else None, add_reactions=True),
         }
 
         for role in self.cog.admin_roles:
-            overwrites[role] = discord.PermissionOverwrite(send_messages=True, add_reactions=True)
+            overwrites[role] = discord.PermissionOverwrite(send_messages=True, read_messages=True if ctx.bot.config["test_mode"] else None, add_reactions=True)
 
         await self.channel.edit(name=f'{CLOSED_EMOJI}{self.channel_name[1:]}', overwrites=overwrites)
 
