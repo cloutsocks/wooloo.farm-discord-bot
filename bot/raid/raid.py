@@ -682,17 +682,21 @@ _This raid was hosted by <@{self.host_id}>_
                 return await ctx.send(
                     f'There\'s no need to skip {str(member)} as they aren\'t in the current round. Type `.q` to see it.')
 
-            removed = self.group[to_remove]
+            join_type, uid = self.group[to_remove]
             del self.group[to_remove]
             replacement = self.pool.get_next(advance=True)
             self.group += replacement
+
+            if uid not in self.pool.kicked:
+                # If a Master Ball user was skipped, put them into the regular queue.
+                self.pool.q.append(uid)
 
             if self.private:
                 user = self.bot.get_user(replacement[0][1])
                 if user:
                     await user.send( f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn (as a replacement)! But keep in mind you may be skipped, so check on the channel as well.''')
 
-        msg = f"<@{removed[1]}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{removed[1]}>'s place in this round."
+        msg = f"<@{uid}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{uid}>'s place in this round."
 
         return await ctx.send(msg)
 
