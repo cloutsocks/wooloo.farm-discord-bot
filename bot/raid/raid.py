@@ -683,6 +683,10 @@ _This raid was hosted by <@{self.host_id}>_
                 return await ctx.send(
                     f'There\'s no need to skip {str(member)} as they aren\'t in the current round. Type `.q` to see it.')
 
+            if not self.pool.get_next(advance=False):
+                await ctx.send(f'{str(member)} **cannot be skipped** right now as there is nobody to take their place.')
+                return
+
             join_type, uid = self.group[to_remove]
             del self.group[to_remove]
             replacement = self.pool.get_next(advance=True)
