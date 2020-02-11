@@ -337,7 +337,7 @@ When you are done raiding, you **must** leave the raid by removing your {EMOJI["
 
 _This raid was hosted by <@{self.host_id}>_
 
-To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI['pokeball']} !'''
+{'To thank them, react with a 💙 ! ' if self.bot.config['add_thanks_heart'] else ''}If you managed to catch one, add in a {EMOJI['pokeball']} !'''
         if self.desc:
             description += f'\n\n_{enquote(self.desc)}_'
         description += FIELD_BREAK
@@ -355,7 +355,11 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
         e.add_field(name='🎮 Switch Name', value=profile['switch_name'], inline=True)
 
         thanks_message = await self.cog.thanks_channel.send('', embed=e)
-        for reaction in ['💙', EMOJI['pokeball']]:
+        reactions = [EMOJI['pokeball']]
+        if self.bot.config['add_thanks_heart']:
+            reactions.insert(0, '💙')
+
+        for reaction in reactions:
             await thanks_message.add_reaction(reaction.strip('<>'))
 
     def make_queue_embed(self, mentions=True, cmd=''):
@@ -740,12 +744,14 @@ To thank them, react with a 💙 ! If you managed to catch one, add in a {EMOJI[
 
         if not immediately:
             if not immediately and (self.round >= 3 or self.mode == FFA):
+
+                thanks_msg = self.bot.config['thanks_msg'].format(thanks_channel=f'<#{self.cog.thanks_channel.id}>', emoji=EMOJI)
+
                 msg = f'''✨ **Raid Host Complete!**
 
 Thank you for raiding, this channel is now closed!
 
-To thank <@{self.host_id}> for their hard work with hosting, head to <#{self.cog.thanks_channel.id}> and react with a 💙 !
-If you managed to catch one, add in a {EMOJI['pokeball']} !
+To thank <@{self.host_id}> for their hard work with hosting, {thanks_msg}
 
 _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
 

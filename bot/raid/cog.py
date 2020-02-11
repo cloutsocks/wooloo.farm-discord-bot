@@ -934,7 +934,6 @@ _Managing a Raid_
 
         channel_name = raid.channel_name
         if raid.locked:
-            raid.channel_emoji = LOCKED_EMOJI
             channel_name = f'{LOCKED_EMOJI}{channel_name[1:]}'
 
         channel = await self.guild.create_text_channel(channel_name, overwrites=overwrites, category=self.category,
