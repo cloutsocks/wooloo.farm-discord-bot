@@ -576,7 +576,7 @@ _This raid was hosted by <@{self.host_id}>_
                 self.pool.mb.append(uid)
 
                 await self.send_join_msg(member, join_type)
-                await self.channel.set_permissions(member, send_messages=True, add_reactions=True)
+                await self.channel.set_permissions(member, read_messages=True if self.bot.config["test_mode"] else None, send_messages=True, add_reactions=True)
 
                 if uid not in self.pool.join_history:
                     self.pool.join_history.append(uid)
@@ -591,7 +591,7 @@ _This raid was hosted by <@{self.host_id}>_
                 self.pool.q.append(uid)
 
                 await self.send_join_msg(member, join_type)
-                await self.channel.set_permissions(member, send_messages=True, add_reactions=True)
+                await self.channel.set_permissions(member, read_messages=True if self.bot.config["test_mode"] else None, send_messages=True, add_reactions=True)
 
                 if uid not in self.pool.join_history:
                     self.pool.join_history.append(uid)
