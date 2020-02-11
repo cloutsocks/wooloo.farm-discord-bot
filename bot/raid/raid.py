@@ -448,13 +448,14 @@ _This raid was hosted by <@{self.host_id}>_
             await self.new_strict_round(ctx)
 
     async def new_strict_round(self, ctx):
+        next_up = [uid for (join_type, uid) in self.group if join_type == 'pb']
 
-        size = self.pool.size()
+        size = self.pool.size() + len(next_up)
         if size < 3:
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
-        self.pool.q.extend(uid for (join_type, uid) in self.group if join_type == 'pb')
+        self.pool.q.extend(next_up)
         self.group = self.pool.get_next(3, advance=True)
 
         announcer = EMOJI[random.choice(['wuwu', 'flop', 'wooloo_fast', 'cooloo', 'stinkey', 'ballguy', 'jacob', 'jacobsdog', 'elliot', 'lily', 'honk'])]
@@ -551,7 +552,7 @@ _This raid was hosted by <@{self.host_id}>_
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
 
-            if self.pool.size() >= self.max_joins:
+            if self.pool.size() + len(self.group) >= self.max_joins:
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return await member.send(
                     f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
@@ -843,7 +844,7 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
             if emoji != LOCKED_EMOJI:
                 self.channel_name = f'{LOCKED_EMOJI}{self.channel_name[1:]}'
         else:
-            pool_size = self.pool.size()
+            pool_size = self.pool.size() + len(self.group)
             if pool_size >= self.max_joins:
                 if emoji != LOCKED_EMOJI:
                     self.channel_name = f'{LOCKED_EMOJI}{self.channel_name[1:]}'
