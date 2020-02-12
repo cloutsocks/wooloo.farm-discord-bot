@@ -708,8 +708,9 @@ _This raid was hosted by <@{self.host_id}>_
     async def kick(self, member, ctx):
 
         async with self.lock:
-            await self.channel.set_permissions(member, read_messages=False)
             uid = member.id
+            if uid not in ctx.bot.config['wooloo_staff_ids']:
+                await self.channel.set_permissions(member, read_messages=False)
 
             self.pool.remove(uid)
             self.pool.kicked.append(uid)
