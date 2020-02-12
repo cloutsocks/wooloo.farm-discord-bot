@@ -168,6 +168,7 @@ class Trainers(commands.Cog):
 
         wf_ban = await has_wf_ban(member.id)
         if wf_ban:
+            print(f'{member} (ID: {member.id}) is BANNED from raiding by authoritative server.')
             return False, 'WF_BAN'
 
         return True, None
