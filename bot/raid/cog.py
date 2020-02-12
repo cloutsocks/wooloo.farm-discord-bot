@@ -282,7 +282,7 @@ _Managing a Raid_
         # except ValueError:
         #     pass
 
-        m = re.search(r'max (\d*)', arg)
+        m = re.search(r' max[\s=](\d*)', arg)
         if m:
             try:
                 options['max_joins'] = int(m.group(1))

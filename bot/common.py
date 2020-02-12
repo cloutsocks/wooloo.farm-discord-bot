@@ -6,6 +6,7 @@ import traceback
 import discord
 
 idPattern = re.compile(r'<@!?(\d+?)>')
+emojiPattern = re.compile(u'([\U00002600-\U000027BF])|([\U0001f300-\U0001f64F])|([\U0001f680-\U0001f6FF])')
 
 ERROR_RED = 0xD32F2F
 INFO_BLUE = 0x3579f0

@@ -447,14 +447,14 @@ _This raid was hosted by <@{self.host_id}>_
             await self.new_strict_round(ctx)
 
     async def new_strict_round(self, ctx):
-        next_up = [uid for (join_type, uid) in self.pool.group if join_type == 'pb']
+        reinsert = [uid for (join_type, uid) in self.pool.group if join_type == 'pb']
 
-        size = self.pool.size() + len(next_up)
+        size = self.pool.size() + len(reinsert)
         if size < 3:
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
         self.round += 1
-        self.pool.q.extend(next_up)
+        self.pool.q.extend(reinsert)
         self.pool.group = self.pool.get_next(3, advance=True)
 
         announcer = EMOJI[random.choice(['wuwu', 'flop', 'wooloo_fast', 'cooloo', 'stinkey', 'ballguy', 'jacob', 'jacobsdog', 'elliot', 'lily', 'honk'])]
@@ -470,7 +470,8 @@ _This raid was hosted by <@{self.host_id}>_
         else:
             up_text = f'''Who's that Pokémon? It's **{self.ups[-1]}**!'''
 
-        description = f'''{up_text}{DBL_BREAK}{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:`.skip @user` to skip and replace someone in the current round
+        description = f'''{up_text}{DBL_BREAK}{code_text} Do **not** join unless you have been named below!{DBL_BREAK}If a trainer is AFK, the host may choose to:
+`.skip @user` to skip and replace someone in the current round
 `.remove @user` to remove (and skip) a user from this raid (they **cannot** rejoin!)
 `.block @user` to remove (and skip) a user from **all** of your raids{FIELD_BREAK}'''
         e = discord.Embed(title=title, description=description)  # .set_footer(text='🐑 wooloo.farm')
