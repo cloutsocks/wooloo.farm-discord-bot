@@ -94,6 +94,17 @@ class Misc(commands.Cog):
         await channel.send(arg)
         await ctx.message.add_reaction('✅')
 
+    @commands.command()
+    async def testmax(self, ctx, *, arg):
+        lens = arg.split(' ')
+
+        e = discord.Embed(title='Active Raiders', description='')
+        for val in lens:
+            lines = ['<@232650437617123328>'] * int(val)
+            txt = '\n'.join(lines)
+            e.add_field(name=str(val), value=txt, inline=False)
+        await ctx.send(embed=e)
+
     # @commands.command()
     # @checks.is_jacob()
     # async def debugsay(self, ctx):

@@ -1,5 +1,6 @@
 class Pool(object):
     def __init__(self):
+        self.group = []
         self.q = []
         self.mb = []
         self.used_mb = []
