@@ -441,9 +441,6 @@ _Managing a Raid_
         if action == 'skip':
             return await target_raid.skip(member, ctx)
 
-        if member.id in self.bot.config['wooloo_staff_ids']:
-            return await ctx.send(f'You cannot remove wooloo.farm staff.')
-
         if action == 'remove':
             return await target_raid.kick(member, ctx)
 
