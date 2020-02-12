@@ -6,10 +6,25 @@ CREATE_HELP = '''_Creating a Raid_
 `.host <channel name>`
 **+** _optional:_ add `ffa` to `<channel name>` to disable managed queues
 **+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
-**+** _optional:_ `.host <channel name> max=20` to limit raiders
-**+** _optional:_ add `no mb` to disable priority masterball raiders
+**+** _optional:_ `.host <channel name> max 20` to limit raiders
 **+** _optional:_ add `private` to hide the code from lurkers
 **+** _optional:_ add `locked` lock the raid until you unlock with `.lock`'''
+
+ADMIN_HELP = '''_Wooloo Admin Commands_
+`.cl` / `.clear` removes all archived channels (be sure to do before it hits 50)
+`.end` ends a channel with a raid-thanks post and 10 minute timer
+`.end now` forcibly ends a channel, instantly archiving
+
+`<param>` you fill this parameter
+`<?param>` optional parameter (not needed)
+
+`.announce <msg>` sends a message in a bot announcement to all active raid channels, raid-chat, and any other channels specified in the config
+`.announce <url with an image (png/jpg/etc)> <?msg>` sends an embed with an image and an option message
+`.announce <msg> votes= emoji, emoji, emoji` sends an embed with emojis added to it
+`.raidsay` the same as announce, but sends a message from the bot without an embed
+`.say #channel <msg>` talk to a particular channel as wooloo (even unrelated to raids)
+`.maxpets <#>` sets the max # of pets before wooloo goes to sleep :zzz:
+`.resetpets` resets the pet counter to 0'''
 
 HOST_COMMANDS = '''`.host help` to show these commands
 `.fc <@user>` display FC / IGN / Switch Name
@@ -27,7 +42,7 @@ HOST_COMMANDS = '''`.host help` to show these commands
 `.private` to toggle a private raid (hide the code from lurkers)
 `.poll <poll message> votes=🐄,🐈,🐖` to make a poll
 `.end` to end the raid
-
+`.echo <tag> <msg>` set a message you can recall with `.echo <tag>`
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the botte, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''

@@ -69,7 +69,7 @@ class Cog(commands.Cog):
             raid_name text not null,
             mode integer not null,
             private integer not null,
-            no_mb integer not null,
+            allow_mb integer not null,
             channel_id integer not null,
             channel_name text not null,
             desc text,
@@ -93,7 +93,7 @@ class Cog(commands.Cog):
     def remake_db(self):
         self.db.close()
         try:
-            os.remove('data.db')
+            os.remove('raid.db')
         except:
             pass
         self.db = sqlite3.connect('raid.db')
@@ -106,7 +106,7 @@ class Cog(commands.Cog):
 
         t = time.time()
         c = self.db.cursor()
-        c.execute('select host_id, guild_id, raid_name, mode, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed from raids')
+        c.execute('select host_id, guild_id, raid_name, mode, private, allow_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = Raid(self.bot, self, self.guild, r.host_id)
             loaded, err = await raid.load_from_record(r)
@@ -217,7 +217,7 @@ class Cog(commands.Cog):
         if not target_raid:
             return
 
-        if target_raid.no_mb and str(payload.emoji) == EMOJI['masterball']:
+        if not target_raid.allow_mb and str(payload.emoji) == EMOJI['masterball']:
             return
 
         if action == 'add':
@@ -258,9 +258,18 @@ _Managing a Raid_
 
         uid = ctx.author.id
         if uid in self.raids:
-            return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
+            if self.raids[uid].confirmed:
+                return await send_message(ctx, 'You are already configuring or hosting a raid.', error=True)
+            self.raids[uid].clear_wait_fors()
+            del self.raids[uid]
 
-        mode = QUEUE
+        options = {
+            'mode': QUEUE,
+            'max_joins': 30,
+            'private': False,
+            'locked': False
+        }
+
         # try:
         #     mode_arg, arg = arg.split(' ', 1)
         #     try:
@@ -274,46 +283,37 @@ _Managing a Raid_
         # except ValueError:
         #     pass
 
-        max_joins = 30
-        m = re.search(r'max=(\d*)', arg)
+        m = re.search(r'max (\d*)', arg)
         if m:
             try:
-                max_joins = int(m.group(1))
+                options['max_joins'] = int(m.group(1))
             except ValueError:
                 return await send_message(ctx,
-                                          'Invalid value for max raiders. Include `max=n` or leave it out for `max=30`',
+                                          'Invalid value for max raiders. Include `max n` or leave it out for `max 30`',
                                           error=True)
             arg = arg.replace(m.group(0), '')
 
-        desc = None
-        m = re.search(r'[\"“‟”’❝❞＂‘‛❛❜](.*)[\"“‟”’❝❞＂‘‛❛❜]', arg, flags=re.DOTALL)
+        m = re.search(r'[\"“‟”’❝❞＂‘‛❛❜\'](.*)[\"“‟”’❝❞＂‘‛❛❜\']', arg, flags=re.DOTALL)
         if m:
-            desc = m.group(1)
+            options['desc'] = m.group(1)
             arg = arg.replace(m.group(0), '')
 
-        private = False
         if 'private' in arg:
-            private = True
+            options['private'] = True
             arg = arg.replace('private', '')
 
-        no_mb = False
-        if 'no mb' in arg:
-            no_mb = True
-            arg = arg.replace('no mb', '')
-
-        locked = False
         if 'locked' in arg:
-            locked = True
+            options['locked'] = True
             arg = arg.replace('locked', '')
 
-        name = arg.strip()
-        if 'ffa' in name.lower():
-            mode = FFA
-        elif mode == FFA:
-            name = f'ffa {name}'
+        options['raid_name'] = arg.strip()
+        if 'ffa' in options['raid_name'].lower():
+            options['mode'] = FFA
+        elif options['mode'] == FFA:
+            options['name'] = f'''ffa {options['raid_name']}'''
 
-        channel_name = f"{RAID_EMOJI}-{name.replace(' ', '-')}"[:100]
-        channel_name = re.sub('[<>]', '', channel_name)
+        channel_name = f"{RAID_EMOJI}-{options['raid_name'].replace(' ', '-')}"[:100]
+        options['channel_name'] = re.sub('[<>]', '', channel_name)
 
         can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
         if not can_host:
@@ -323,8 +323,7 @@ _Managing a Raid_
         self.raids[uid] = Raid(self.bot, self, self.guild, ctx.author.id)
         print('[Raid Creation]', self.raids)
 
-        # todo refactor long param list into options dict or namedtuple
-        await self.raids[uid].send_confirm_prompt(ctx, name, channel_name, mode, desc, max_joins, private, no_mb, locked)
+        await self.raids[uid].send_confirm_prompt(ctx, options)
 
     @host.error
     async def host_error(self, ctx, error):
@@ -336,7 +335,7 @@ _Managing a Raid_
     async def cancel_before_confirm(self, raid, channel, msg=''):
         print(f'[Raid Cancel] {self} was cancelled before it was confirmed.')
         del self.raids[raid.host_id]
-        raid.destroy()
+        raid.clear_wait_fors()
         await channel.send(f"<@{raid.host_id}> {msg}Your raid was cancelled. {EMOJI['flop']}")
 
     @commands.command()
@@ -615,7 +614,7 @@ _Managing a Raid_
 
         if not msg:
             if tag in raid.echos:
-                return await ctx.send(f'**Echo from the Host**\n{raid.echos[tag]}')
+                return await ctx.send(f'**Echo from the host**\n{raid.echos[tag]}')
             return await send_message(ctx, f'Echo not found for tag `{tag}`.{DBL_BREAK}{echo_help}', error=True)
 
         if len(raid.echos) > 5:
@@ -772,6 +771,11 @@ _Managing a Raid_
     '''
     raid admin
     '''
+
+    @checks.is_bot_admin()
+    @commands.command()
+    async def admin(self, ctx):
+        return await ctx.send(texts.ADMIN_HELP)
 
     # @checks.is_jacob()
     # @commands.command()
@@ -932,11 +936,10 @@ _Managing a Raid_
 
         topic = 'please read the pinned messages before raiding'
 
-        channel_name = raid.channel_name
         if raid.locked:
-            channel_name = f'{LOCKED_EMOJI}{channel_name[1:]}'
+            raid.channel_name = f'{LOCKED_EMOJI}{raid.channel_name[1:]}'
 
-        channel = await self.guild.create_text_channel(channel_name, overwrites=overwrites, category=self.category,
+        channel = await self.guild.create_text_channel(raid.channel_name, overwrites=overwrites, category=self.category,
                                                        topic=topic)
         return channel
 

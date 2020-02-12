@@ -17,9 +17,8 @@ from .pool import Pool
 from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
                     FLEXIBLE, FFA, QUEUE
 
-
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, mode, private, no_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, mode, private, allow_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, raid_group, ups, start_time, time_saved, code, locked, closed')
 
 
 def show_member_for_log(member):
@@ -35,7 +34,7 @@ class Raid(object):
         self.raid_name = None
         self.mode = FLEXIBLE
         self.private = False
-        self.no_mb = False
+        self.allow_mb = False
         self.channel = None
         self.channel_name = None
         self.desc = None
@@ -85,7 +84,7 @@ class Raid(object):
                               raid_name=self.raid_name,
                               mode=self.mode,
                               private=self.private,
-                              no_mb=self.no_mb,
+                              allow_mb=self.allow_mb,
                               channel_id=self.channel.id if self.channel is not None else None,
                               channel_name=self.channel_name,
                               desc=self.desc,
@@ -133,7 +132,7 @@ class Raid(object):
             self.raid_name = r.raid_name
             self.mode = r.mode
             self.private = r.private
-            self.no_mb = r.no_mb
+            self.allow_mb = r.allow_mb
             self.channel_name = r.channel_name
             self.desc = r.desc
 
@@ -158,54 +157,55 @@ class Raid(object):
     creation
     '''
 
-    def destroy(self):
+    def clear_wait_fors(self):
         self.bot.clear_wait_fors(self.host_id)
 
     # todo break params into obj
-    async def send_confirm_prompt(self, ctx, raid_name, channel_name, mode, desc, max_joins, private, no_mb, locked):
+    async def send_confirm_prompt(self, ctx, options):
         async with self.lock:
             if self.confirmed or self.channel or self.wfr_message:
                 return
 
-            self.raid_name = raid_name
-            self.channel_name = channel_name
-            self.mode = mode
-            self.max_joins = clamp(max_joins, 3, 30 if mode == QUEUE else 50)
-            self.private = private
-            self.no_mb = no_mb
-            self.locked = locked
-            options = ['**' + {
+            self.raid_name = options['raid_name']
+            self.channel_name = options['channel_name']
+            self.mode = options['mode']
+            self.max_joins = clamp(options['max_joins'], 3, 30 if options['mode'] == QUEUE else 50)
+            self.private = options.get('private', False)
+            self.locked = options.get('locked', False)
+            options_text = ['**' + {
                 FLEXIBLE: 'flexible',
                 FFA: 'FFA',
                 QUEUE: 'queue',
             }[self.mode] + '**']
 
             if self.private:
-                options.append('**private** (hidden code)')
-            if self.no_mb:
-                options.append('**no masterball**')
+                options_text.append('**private** (hidden code)')
             if self.locked:
-                options.append('🔒 **locked**')
+                options_text.append('🔒 **locked**')
 
-            if options:
-                options = (', '.join(options)) + ' '
+            if options_text:
+                options_text = (', '.join(options_text)) + ' '
             else:
-                options = ''
+                options_text = ''
 
+            desc = options.get('desc', None)
             if not desc:
-                msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?
-
-{texts.CREATE_HELP}'''
+                msg = f'''<@{self.host_id}> This will create a new {options_text}raid host channel called `#{options['channel_name']}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?'''
             else:
                 self.desc = desc
-                msg = f'''<@{self.host_id}> This will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
+                msg = f'''<@{self.host_id}> This will create a new {options_text}raid host channel called `#{options['channel_name']}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
 
-Are you sure you want to continue?
+Are you sure you want to continue?'''
 
-{texts.CREATE_HELP}'''
+            if self.mode != FFA:
+                msg = f'''{msg}\n\n{texts.CREATE_HELP}\n\n{EMOJI['pokeball']} to start the raid\n{EMOJI['masterball']} to start the raid & allow masterball users to join with priority\n{ICON_CLOSE} to cancel{FIELD_BREAK}'''
+                reactions = [EMOJI['pokeball'], EMOJI['masterball'], ICON_CLOSE]
+            else:
+                msg = f'''{msg}\n\n{texts.CREATE_HELP}\n\n{EMOJI['pokeball']} to start the raid\n{ICON_CLOSE} to cancel{FIELD_BREAK}'''
+                reactions = [EMOJI['pokeball'], ICON_CLOSE]
 
             self.wfr_message = await ctx.send(msg)
-            for reaction in ['✅', ICON_CLOSE]:
+            for reaction in reactions:
                 await self.wfr_message.add_reaction(reaction.strip('<>'))
 
             self.bot.wfr[self.host_id] = self
@@ -214,6 +214,9 @@ Are you sure you want to continue?
         if not self.confirmed:
             emoji = str(reaction.emoji)
             if emoji == EMOJI['pokeball'] or emoji == '✅':
+                await self.confirm_and_create(reaction.message.channel)
+            elif emoji == EMOJI['masterball'] and self.mode != FFA:
+                self.allow_mb = True
                 await self.confirm_and_create(reaction.message.channel)
             elif emoji == ICON_CLOSE:
                 await self.cog.cancel_before_confirm(self, reaction.message.channel)
@@ -292,7 +295,7 @@ Are you sure you want to continue?
 
 Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
         # queue, no masterballs
-        elif self.no_mb:
+        elif not self.allow_mb:
             reactions = [EMOJI['pokeball']]
             instructions = f'''Click {EMOJI["pokeball"]} to join the raid pool! {EMOJI["masterball"]} are **disabled** for this raid.
 
@@ -783,7 +786,7 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
             return None
 
         del self.cog.raids[self.host_id]
-        self.destroy()
+        self.clear_wait_fors()
 
         await self.cog.save_raids_to_db()
         await self.channel.edit(sync_permissions=True, category=self.cog.archive, position=0)
