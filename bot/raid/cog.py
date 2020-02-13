@@ -9,7 +9,7 @@ from discord.ext import tasks, commands
 
 import checks
 import texts
-from common import clamp, idPattern, send_message, print_error, escuchameUrl, pokeballUrl, TYPE_COLORS, DBL_BREAK, EMOJI, ICON_CLOSE, enquote
+from common import clamp, idPattern, emojiPattern, customEmojiPattern, send_message, print_error, escuchameUrl, pokeballUrl, TYPE_COLORS, DBL_BREAK, EMOJI, ICON_CLOSE, enquote
 from trainers import ign_as_text, fc_as_text
 
 from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
@@ -153,7 +153,7 @@ class Cog(commands.Cog):
 
             print(f'[DB] Saving record {record} to database')
             try:
-                c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
+                c.execute('insert into raids values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
             except sqlite3.Error as e:
                 print(f'[SQL Insert Error] Could not insert raid {record.raid_name}! Error: {type(e).__name__}, {e}')
 
@@ -281,6 +281,8 @@ _Managing a Raid_
         #         pass
         # except ValueError:
         #     pass
+
+        # m = re.search(customEmojiPattern, arg)
 
         m = re.search(r' max[\s=](\d*)', arg)
         if m:
