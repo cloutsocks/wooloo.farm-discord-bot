@@ -4,11 +4,9 @@ from common import EMOJI, enquote
 
 CREATE_HELP = '''_Creating a Raid_
 `.host <channel name>`
-**+** _optional:_ add `ffa` to `<channel name>` to disable managed queues
+**+** _optional:_  include an emoji at the start to set the raid emoji
 **+** _optional:_ `.host <channel name> "description goes here"` to set requirements (e.g. "leave after catching") or details (stats, etc)
-**+** _optional:_ `.host <channel name> max 20` to limit raiders
-**+** _optional:_ add `private` to hide the code from lurkers
-**+** _optional:_ add `locked` lock the raid until you unlock with `.lock`'''
+**+** _optional:_ `.host <channel name> max 20` to limit raiders'''
 
 ADMIN_HELP = '''_Wooloo Admin Commands_
 `.cl` / `.clear` removes all archived channels (be sure to do before it hits 50)
@@ -43,6 +41,7 @@ HOST_COMMANDS = '''`.host help` to show these commands
 `.poll <poll message> votes=🐄,🐈,🐖` to make a poll
 `.end` to end the raid
 `.echo <tag> <msg>` set a message you can recall with `.echo <tag>`
+**[NEW]** `.rename <name>` to rename channel
 '''
 
 RAID_NOT_FOUND = '''You can only do this in an active raid channel. If this _was_ a raid channel, it has been disconnected from the botte, but the host can remake it from scratch. We're exploring possible options to handle this more gracefully.'''

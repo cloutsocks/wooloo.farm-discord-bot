@@ -9,20 +9,21 @@ import discord
 import texts
 
 from common import clamp, send_message, pokeballUrl, TYPE_COLORS, DBL_BREAK, FIELD_BREAK, EMOJI, \
-                   ICON_CLOSE, enquote
+                   ICON_CLOSE, BLUE_HEART, YELLOW_HEART, GREEN_HEART, SPY_EMOJI, enquote
 from trainers import ign_as_text, fc_as_text
 
 from collections import namedtuple
 from .pool import Pool
 from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
-                    FLEXIBLE, FFA, QUEUE
+                    BALANCED, FFA, QUEUE
 
 RaidRecord = namedtuple('RaidRecord',
-                        'host_id, guild_id, raid_name, mode, private, allow_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, ups, start_time, time_saved, code, locked, closed')
+                        'host_id, guild_id, raid_name, mode, private, allow_mb, channel_id, emoji, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, ups, start_time, time_saved, code, locked, closed')
 
 
 def show_member_for_log(member):
     return f"<@{member.id}> ({member.name}#{member.discriminator}, ID: {member.id}, Nickname: {member.nick})"
+
 
 class Raid(object):
     def __init__(self, bot, cog, guild, host_id):
@@ -32,11 +33,11 @@ class Raid(object):
         self.guild = guild
 
         self.raid_name = None
-        self.mode = FLEXIBLE
+        self.mode = BALANCED
         self.private = False
         self.allow_mb = False
         self.channel = None
-        self.channel_name = None
+        self.emoji = RAID_EMOJI
         self.desc = None
         self.listing_message = None
         self.last_round_message = None
@@ -85,7 +86,7 @@ class Raid(object):
                               private=self.private,
                               allow_mb=self.allow_mb,
                               channel_id=self.channel.id if self.channel is not None else None,
-                              channel_name=self.channel_name,
+                              emoji=self.emoji,
                               desc=self.desc,
                               listing_msg_id=self.listing_message.id if self.listing_message is not None else None,
                               last_round_msg_id=self.last_round_message.id if self.last_round_message is not None else None,
@@ -131,7 +132,6 @@ class Raid(object):
             self.mode = r.mode
             self.private = r.private
             self.allow_mb = r.allow_mb
-            self.channel_name = r.channel_name
             self.desc = r.desc
 
             self.round = r.round
@@ -157,55 +157,91 @@ class Raid(object):
     def clear_wait_fors(self):
         self.bot.clear_wait_fors(self.host_id)
 
-    # todo break params into obj
+    def make_prompt_text(self):
+
+        option_parts = []
+        option_parts.append('**' + {
+            BALANCED: 'balanced',
+            FFA: 'FFA',
+            QUEUE: 'queue',
+        }[self.mode] + '**')
+
+        if self.private:
+            option_parts.append('**private** (hidden code)')
+        if self.locked:
+            option_parts.append('🔒 **locked**')
+
+        options = '' if not option_parts else f'''{', '.join(option_parts)} '''
+
+        raid_name = self.raid_name
+        if self.mode == FFA and 'ffa' not in self.raid_name.lower():
+            raid_name = f'''ffa {self.raid_name}'''
+
+        channel_name = self.bot.raid_cog.make_channel_name(raid_name, self.emoji or RAID_EMOJI)
+
+        parts = [
+            f'''<@{self.host_id}>\nThis will create a new {options}raid host channel called `#{channel_name}` allowing a maximum of **{self.max_joins}** raiders''',
+            f' with the description _{enquote(self.desc)}_' if self.desc else '.', f'''\n\n{texts.CREATE_HELP}\n\n'''
+        ]
+
+        modes = {
+            YELLOW_HEART: '**Balanced** (recommended, coming soon) — a mix between queue and ffa that is the best of both worlds',
+            GREEN_HEART: '**FFA** — no bot organized queue! anyone with the `.code` can join; a bit more hectic and not everyone gets to go',
+            BLUE_HEART: '**Queue** — a strict queue where raiders are called 3 at a time, but slows down when user don\'t make it in (can be cumbersome)',
+        }
+
+        options = {
+            CLOSED_EMOJI: 'to lock the raid until you unlock with `.lock`',
+            SPY_EMOJI: 'to hide the code from lurkers',
+            EMOJI['pokeball']: 'to start the raid',
+            EMOJI['masterball']: 'to start the raid & allow masterball users to join with priority',
+            ICON_CLOSE: 'to cancel'
+        }
+
+        reactions = list(modes.keys()) + list(options.keys())
+
+        parts.append('_Select a Raid Mode_\n')
+        for emoji, text in modes.items():
+            parts.append(f'''{emoji} {text}\n''')
+
+        parts.append('\n_Options_\n')
+        for emoji, text in options.items():
+            if emoji == EMOJI['masterball'] and self.mode == FFA:
+                continue
+
+            parts.append(f'''{emoji} {text}\n''')
+
+        parts.append('\u200b')
+        return ''.join(parts), reactions
+
     async def send_confirm_prompt(self, ctx, options):
         async with self.lock:
             if self.confirmed or self.channel or self.wfr_message:
                 return
 
             self.raid_name = options['raid_name']
-            self.channel_name = options['channel_name']
             self.mode = options['mode']
             self.max_joins = clamp(options['max_joins'], 3, 30 if options['mode'] == QUEUE else 50)
-            self.private = options.get('private', False)
-            self.locked = options.get('locked', False)
-            options_text = ['**' + {
-                FLEXIBLE: 'flexible',
-                FFA: 'FFA',
-                QUEUE: 'queue',
-            }[self.mode] + '**']
+            self.private = False
+            self.locked = False
+            self.desc = options.get('desc', None)
+            self.emoji = options.get('emoji', None)
 
-            if self.private:
-                options_text.append('**private** (hidden code)')
-            if self.locked:
-                options_text.append('🔒 **locked**')
+            # move to confirm and create
+            # if self.mode == FFA and 'ffa' not in self.raid_name.lower():
+            #     self.raid_name = f'''ffa {self.raid_name}'''
 
-            if options_text:
-                options_text = (', '.join(options_text)) + ' '
-            else:
-                options_text = ''
-
-            desc = options.get('desc', None)
-            if not desc:
-                msg = f'''<@{self.host_id}> This will create a new {options_text}raid host channel called `#{options['channel_name']}` allowing a maximum of **{self.max_joins}** raiders, are you sure you want to continue?'''
-            else:
-                self.desc = desc
-                msg = f'''<@{self.host_id}> This will create a new {options_text}raid host channel called `#{options['channel_name']}` allowing a maximum of **{self.max_joins}** raiders with the description _{enquote(self.desc)}_
-
-Are you sure you want to continue?'''
-
-            if self.mode != FFA:
-                msg = f'''{msg}\n\n{texts.CREATE_HELP}\n\n{EMOJI['pokeball']} to start the raid\n{EMOJI['masterball']} to start the raid & allow masterball users to join with priority\n{ICON_CLOSE} to cancel{FIELD_BREAK}'''
-                reactions = [EMOJI['pokeball'], EMOJI['masterball'], ICON_CLOSE]
-            else:
-                msg = f'''{msg}\n\n{texts.CREATE_HELP}\n\n{EMOJI['pokeball']} to start the raid\n{ICON_CLOSE} to cancel{FIELD_BREAK}'''
-                reactions = [EMOJI['pokeball'], ICON_CLOSE]
+            msg, reactions = self.make_prompt_text()
 
             self.wfr_message = await ctx.send(msg)
             for reaction in reactions:
                 await self.wfr_message.add_reaction(reaction.strip('<>'))
 
             self.bot.wfr[self.host_id] = self
+
+    async def update_confirm_prompt(self):
+        msg, reactions = self.make_prompt_text()
+        await self.wfr_message.edit(content=msg)
 
     async def handle_reaction(self, reaction, user):
         if not self.confirmed:
@@ -217,6 +253,32 @@ Are you sure you want to continue?'''
                 await self.confirm_and_create(reaction.message.channel)
             elif emoji == ICON_CLOSE:
                 await self.cog.cancel_before_confirm(self, reaction.message.channel)
+
+            # modes
+            elif emoji == YELLOW_HEART:
+                if self.mode != BALANCED:
+                    await reaction.message.channel.send(f'<@{user.id}> _Balanced mode is coming soon! Fixes most problems with queue and FFA, and a lot simpler too._', delete_after=10)
+            elif emoji == GREEN_HEART:
+                if self.mode != FFA:
+                    self.mode = FFA
+                    await self.update_confirm_prompt()
+            elif emoji == BLUE_HEART:
+                if self.mode != QUEUE:
+                    if 'ffa' in self.raid_name:
+                        await reaction.message.channel.send(
+                            f'''<@{user.id}> _You can't put 'ffa' in the title if it's not an ffa. You may remake it with a new name.''',
+                            delete_after=10)
+                    else:
+                        self.mode = QUEUE
+                        await self.update_confirm_prompt()
+
+            # options
+            elif emoji == CLOSED_EMOJI:
+                self.locked = not self.locked
+                await self.update_confirm_prompt()
+            elif emoji == SPY_EMOJI:
+                self.private = not self.private
+                await self.update_confirm_prompt()
 
     async def confirm_and_create(self, channel_ctx):
         self.bot.clear_wait_fors(self.host_id)
@@ -230,6 +292,10 @@ Are you sure you want to continue?'''
                                                              f'Unfortunately, we already have the maximum number of **{self.cog.max_raids}** raids being hosted. Please wait a bit and try again later.')
 
             # todo verify can host?
+
+            if self.mode == FFA and 'ffa' not in self.raid_name.lower():
+                self.raid_name = f'''ffa {self.raid_name}'''
+
             await self.cog.log_channel.send(f"<@{self.host_id}> (ID: {self.host_id}) has created a new raid: {self.raid_name}.")
 
             self.wfr_message = None
@@ -277,7 +343,7 @@ Are you sure you want to continue?'''
         if '1' in profile['games'] and 'name' in profile['games']['1'] and profile['games']['1']['name']:
             games.append([f"{EMOJI['shield']} **IGN**", profile['games']['1']['name']])
 
-        description = f'''{RAID_EMOJI} _hosted by <@{self.host_id}> in <#{self.channel.id}>_'''
+        description = f'''{self.emoji or RAID_EMOJI} _hosted by <@{self.host_id}> in <#{self.channel.id}>_'''
         if self.desc:
             description += f'\n\n_{enquote(self.desc)}_'
 
@@ -304,7 +370,7 @@ When you are done raiding, you **must** leave the raid by removing your {EMOJI["
 When you are done raiding, you **must** leave the raid by removing your {EMOJI["pokeball"]} reaction or by typing `.leave`. Please read the **pinned instructions** in the channel carefully or you'll be removed!{FIELD_BREAK}'''
 
         footer = ''
-        thumbnail = f"https://static.wooloo.farm/games/swsh/species_lg/831{'_S' if 'shiny' in self.channel_name.lower() else ''}.png"
+        thumbnail = f"https://static.wooloo.farm/games/swsh/species_lg/831{'_S' if 'shiny' in self.channel.name.lower() else ''}.png"
         color = random.choice(TYPE_COLORS)
         e = discord.Embed(title=self.raid_name, description=description, color=color) \
             .set_author(name=f'wooloo.farm', url='https://wooloo.farm/', icon_url=pokeballUrl) \
@@ -342,7 +408,7 @@ _This raid was hosted by <@{self.host_id}>_
         description += FIELD_BREAK
 
         footer = ''
-        thumbnail = f"https://static.wooloo.farm/games/swsh/species_lg/831{'_S' if 'shiny' in self.channel_name.lower() else ''}.png"
+        thumbnail = f"https://static.wooloo.farm/games/swsh/species_lg/831{'_S' if 'shiny' in self.channel.name.lower() else ''}.png"
         color = random.choice(TYPE_COLORS)
         e = discord.Embed(title=self.raid_name, description=description, color=color) \
             .set_thumbnail(url=thumbnail).set_footer(text=footer) \
@@ -371,7 +437,7 @@ _This raid was hosted by <@{self.host_id}>_
                 group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in self.pool.group])
                 sections.append(f'**Current Group**\n{group_text}')
 
-            next_up = self.pool.get_next(5 if self.mode == FLEXIBLE else 3, advance=False)
+            next_up = self.pool.get_next(5 if self.mode == BALANCED else 3, advance=False)
             group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in next_up])
             sections.append(f'**Next Call**\n{group_text}')
 
@@ -722,7 +788,7 @@ _This raid was hosted by <@{self.host_id}>_
             f"<@{uid}> has been removed from this raid. They will not be able to see this channel or rejoin. {EMOJI['flop']}")
 
         await self.cog.log_channel.send(
-            f'<@{self.host_id}> (ID: {self.host_id}) (or an admin) **kicked** {show_member_for_log(member)} in `{self.channel_name}`')
+            f'<@{self.host_id}> (ID: {self.host_id}) (or an admin) **kicked** {show_member_for_log(member)} in {str(self.channel)} (`{self.channel.name}`)')
         await self.skip(member, ctx)
 
     async def block(self, member, ctx):
@@ -750,7 +816,7 @@ _This raid was hosted by <@{self.host_id}>_
         for role in self.cog.admin_roles:
             overwrites[role] = discord.PermissionOverwrite(send_messages=True, read_messages=True if ctx.bot.config["test_mode"] else None, add_reactions=True)
 
-        await self.channel.edit(name=f'{CLOSED_EMOJI}{self.channel_name[1:]}', overwrites=overwrites)
+        await self.channel.edit(name=f'{CLOSED_EMOJI}{self.channel.name[1:]}', overwrites=overwrites)
 
         if not immediately:
             if not immediately and (self.round >= 3 or self.mode == FFA):
@@ -842,19 +908,15 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
         if self.closed:
             return
 
-        old_channel_name = self.channel_name
-
-        emoji = self.channel_name[0]
         if self.locked:
-            if emoji != LOCKED_EMOJI:
-                self.channel_name = f'{LOCKED_EMOJI}{self.channel_name[1:]}'
+            emoji = LOCKED_EMOJI
         else:
             pool_size = self.pool.size() + len(self.pool.group)
             if pool_size >= self.max_joins:
-                if emoji != LOCKED_EMOJI:
-                    self.channel_name = f'{LOCKED_EMOJI}{self.channel_name[1:]}'
-            elif emoji != RAID_EMOJI:
-                self.channel_name = f'{RAID_EMOJI}{self.channel_name[1:]}'
+                emoji = LOCKED_EMOJI
+            else:
+                emoji = self.emoji or RAID_EMOJI
 
-        if old_channel_name != self.channel_name:
-            await self.channel.edit(name=self.channel_name)
+        updated_name = f'{emoji}{self.channel.name[1:]}'
+        if self.channel.name != updated_name:
+            await self.channel.edit(name=updated_name)

@@ -3,6 +3,8 @@ import random
 import re
 import sqlite3
 import time
+import importlib
+import sys
 
 import discord
 from discord.ext import tasks, commands
@@ -14,10 +16,9 @@ from trainers import ign_as_text, fc_as_text
 
 from .config import RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI, \
                     DEFAULT, LOCKED, CLOSED, \
-                    FLEXIBLE, FFA, QUEUE
+                    BALANCED, FFA, QUEUE
 
 from .raid import Raid, RaidRecord
-
 
 class Cog(commands.Cog):
     def __init__(self, bot):
@@ -61,6 +62,13 @@ class Cog(commands.Cog):
         self.save_interval.start()
         self.loaded = True
 
+    def reload_deps(self):
+        if self.bot.config.get('disable_hot_reload', False):
+            return
+
+        importlib.reload(sys.modules['raid.pool'])
+        importlib.reload(sys.modules['raid.raid'])
+
     def make_db(self):
         c = self.db.cursor()
         c.execute('''create table if not exists raids (
@@ -71,7 +79,7 @@ class Cog(commands.Cog):
             private integer not null,
             allow_mb integer not null,
             channel_id integer not null,
-            channel_name text not null,
+            raid_emoji text,
             desc text,
             listing_msg_id integer not null,
             last_round_msg_id integer,
@@ -105,7 +113,7 @@ class Cog(commands.Cog):
 
         t = time.time()
         c = self.db.cursor()
-        c.execute('select host_id, guild_id, raid_name, mode, private, allow_mb, channel_id, channel_name, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, ups, start_time, time_saved, code, locked, closed from raids')
+        c.execute('select host_id, guild_id, raid_name, mode, private, allow_mb, channel_id, raid_emoji, desc, listing_msg_id, last_round_msg_id, round, max_joins, pool, ups, start_time, time_saved, code, locked, closed from raids')
         for r in map(RaidRecord._make, c.fetchall()):
             raid = Raid(self.bot, self, self.guild, r.host_id)
             loaded, err = await raid.load_from_record(r)
@@ -262,18 +270,25 @@ _Managing a Raid_
             self.raids[uid].clear_wait_fors()
             del self.raids[uid]
 
+        can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
+        if not can_host:
+            msg = texts.make_error_msg(err, uid)
+            return await send_message(ctx, msg, error=True)
+
+        # todo BALANCED
         options = {
-            'mode': QUEUE,
+            'mode': FFA,
             'max_joins': 30,
             'private': False,
-            'locked': False
+            'locked': False,
+            'emoji': None
         }
 
         # try:
         #     mode_arg, arg = arg.split(' ', 1)
         #     try:
         #         mode = {
-        #             # 'flexible': FLEXIBLE,
+        #             # 'balanced': BALANCED,
         #             'ffa': FFA,
         #             'queue': QUEUE,
         #         }[mode_arg.lower()]
@@ -289,9 +304,7 @@ _Managing a Raid_
             try:
                 options['max_joins'] = int(m.group(1))
             except ValueError:
-                return await send_message(ctx,
-                                          'Invalid value for max raiders. Include `max n` or leave it out for `max 30`',
-                                          error=True)
+                return await send_message(ctx, 'Invalid value for max raiders. Include `max n` or leave it out for `max 30`', error=True)
             arg = arg.replace(m.group(0), '')
 
         m = re.search(r'[\"“‟”’❝❞＂‘‛❛❜\'](.*)[\"“‟”’❝❞＂‘‛❛❜\']', arg, flags=re.DOTALL)
@@ -299,27 +312,31 @@ _Managing a Raid_
             options['desc'] = m.group(1)
             arg = arg.replace(m.group(0), '')
 
-        if 'private' in arg:
-            options['private'] = True
-            arg = arg.replace('private', '')
+        # if 'private' in arg:
+        #     options['private'] = True
+        #     arg = arg.replace('private', '')
+        #
+        # if 'locked' in arg:
+        #     options['locked'] = True
+        #     arg = arg.replace('locked', '')
 
-        if 'locked' in arg:
-            options['locked'] = True
-            arg = arg.replace('locked', '')
+        m = re.search(customEmojiPattern, arg)
+        if m:
+            return await send_message(ctx, 'You cannot put images (custom emoji) into channel names on Discord.', error=True)
 
         options['raid_name'] = arg.strip()
+        m = re.match(emojiPattern, options['raid_name'])
+        if m:
+            options['emoji'] = options['raid_name'][0]
+            options['raid_name'] = options['raid_name'][1:].strip()
+
         if 'ffa' in options['raid_name'].lower():
             options['mode'] = FFA
-        elif options['mode'] == FFA:
-            options['name'] = f'''ffa {options['raid_name']}'''
+        # elif options['mode'] == FFA:
+        #     options['name'] = f'''ffa {options['raid_name']}'''
 
-        channel_name = f"{RAID_EMOJI}-{options['raid_name'].replace(' ', '-')}"[:100]
-        options['channel_name'] = re.sub('[<>]', '', channel_name)
-
-        can_host, err = await self.bot.trainers.can_host(ctx.author, ctx)
-        if not can_host:
-            msg = texts.make_error_msg(err, uid)
-            return await send_message(ctx, msg, error=True)
+        # channel_name = f"{RAID_EMOJI}-{options['raid_name'].replace(' ', '-')}"[:100]
+        # options['channel_name'] = re.sub('[<>]', '', channel_name)
 
         self.raids[uid] = Raid(self.bot, self, self.guild, ctx.author.id)
         print('[Raid Creation]', self.raids)
@@ -526,6 +543,31 @@ _Managing a Raid_
             msg = f'''Raid is no longer private, which means the code is public again (it's **{raid.code}**). Type `.private` again to toggle.'''
 
         await ctx.send(msg)
+
+    @commands.command()
+    async def rename(self, ctx, *, arg=''):
+        name = arg.strip()[:100]
+        if not name:
+            return await send_message(ctx, f'You have to specify a new channel name.', error=True)
+
+        target_raid = None
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+                is_bot_admin = checks.check_bot_admin(ctx.author, ctx.bot)
+
+                if not is_bot_admin and not is_host:
+                    return
+                target_raid = raid
+                break
+
+        if not target_raid:
+            return await send_message(ctx, f'You may only do this in your active raid channel.', error=True)
+
+        updated_name = f'{target_raid.channel.name[0]}-{name}'
+        await target_raid.channel.edit(name=updated_name)
+        await ctx.message.add_reaction('✅')
+
 
     '''
     pins
@@ -872,9 +914,9 @@ _Managing a Raid_
             for reaction in emoji:
                 await msg.add_reaction(reaction.strip('<> '))
 
-        for channel in self.category.text_channels:
-            if channel.name.startswith(RAID_EMOJI) or channel.name.startswith(LOCKED_EMOJI):
-                msg = await channel.send('', embed=e)
+        for raid in self.raids.values():
+            if not raid.closed:
+                msg = await raid.channel.send('', embed=e)
                 for reaction in emoji:
                     await msg.add_reaction(reaction.strip('<> '))
 
@@ -892,9 +934,9 @@ _Managing a Raid_
         for channel in self.announce_channels:
             await channel.send(msg)
 
-        for channel in self.category.text_channels:
-            if channel.name[0] in [RAID_EMOJI, LOCKED_EMOJI]:
-                await channel.send(msg)
+        for raid in self.raids.values():
+            if not raid.closed:
+                await raid.channel.send(msg)
 
         await ctx.send('Sent!')
 
@@ -903,8 +945,7 @@ _Managing a Raid_
     async def clear(self, ctx):
         if self.archive:
             for channel in self.archive.text_channels:
-                if channel.name[0] in [RAID_EMOJI, LOCKED_EMOJI, CLOSED_EMOJI]:
-                    await channel.delete()
+                await channel.delete()
 
     async def clear_channels_dirty(self):
         if self.category:
@@ -934,12 +975,13 @@ _Managing a Raid_
 
         topic = 'please read the pinned messages before raiding'
 
-        if raid.locked:
-            raid.channel_name = f'{LOCKED_EMOJI}{raid.channel_name[1:]}'
-
-        channel = await self.guild.create_text_channel(raid.channel_name, overwrites=overwrites, category=self.category,
-                                                       topic=topic)
+        channel_name = self.make_channel_name(raid.raid_name, LOCKED_EMOJI if raid.locked else raid.emoji or RAID_EMOJI)
+        channel = await self.guild.create_text_channel(channel_name, overwrites=overwrites, category=self.category, topic=topic)
         return channel
+
+    def make_channel_name(self, raid_name, emoji):
+        channel_name = f"{emoji}-{raid_name.replace(' ', '-')}"[:100]
+        return re.sub('[<>]', '', channel_name)
 
     def configure(self):
         self.category = self.bot.get_channel(self.bot.config['raids_cid'])

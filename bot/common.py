@@ -31,6 +31,11 @@ TYPE_COLORS = (
 
 ICON_ATTACK = '⚔'
 ICON_CLOSE = '❌'
+BLUE_HEART = '💙'
+GREEN_HEART = '💚'
+YELLOW_HEART = '💛'
+SPY_EMOJI = '🕵️'
+
 
 EMOJI = {
     'wuwu': '<:wuwu:676228384615038988>',
@@ -131,6 +136,7 @@ def clamp(n, lo, hi):
 def print_error(ctx, error):
     print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
     traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+
 
 def setup(bot):
     pass

@@ -119,6 +119,8 @@ if not bot.config.get('disable_hot_reload', False):
         bot.wfr = {}
         try:
             for extension in initial_extensions:
+                if extension == 'raid.cog':
+                    bot.raid_cog.reload_deps()
                 bot.unload_extension(extension)
                 bot.load_extension(extension)
         except Exception as e:
