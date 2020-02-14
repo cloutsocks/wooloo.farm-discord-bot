@@ -891,11 +891,10 @@ _Managing a Raid_
         if not self.category:
             return
 
-        emoji = []
         if 'votes=' in arg:
-            arg, votes = arg.split('votes=')
-            emoji = votes.split(',')
+            return await send_message(ctx, '''You don't need to do votes= for emoji anymore, I'll pull them automatically.''', error=True)
 
+        emoji = list(re.findall(emojiPattern, arg, flags=re.DOTALL)) + list(re.findall(customEmojiPattern, arg, flags=re.DOTALL))
         url = None
         m = re.search(r'http[\w\-._~:/?#[\]@!$&\'()*+,;=]+', arg, flags=re.DOTALL)
         if m:

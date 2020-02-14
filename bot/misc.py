@@ -1,3 +1,5 @@
+import re
+
 import discord
 import random
 
@@ -5,7 +7,7 @@ import discord
 from discord.ext import commands
 
 import checks
-from common import send_message, EMOJI, FIELD_BREAK
+from common import send_message, EMOJI, FIELD_BREAK, emojiPattern, customEmojiPattern
 
 
 class Misc(commands.Cog):
@@ -74,10 +76,11 @@ class Misc(commands.Cog):
     @commands.command()
     async def poll(self, ctx, *, arg):
         emoji = []
-        if 'votes=' in arg:
-            arg, votes = arg.split('votes=')
-            emoji = votes.split(',')
 
+        if 'votes=' in arg:
+            return await send_message(ctx, '''You don't need to do votes= for emoji anymore, I'll pull them automatically.''', error=True)
+
+        emoji = list(re.findall(emojiPattern, arg, flags=re.DOTALL)) + list(re.findall(customEmojiPattern, arg, flags=re.DOTALL))
         e = discord.Embed(title="Poll time!", description=f"**<@{ctx.author.id}> asks:**\n{arg}")
         msg = await ctx.send(embed=e)
         for reaction in emoji:
