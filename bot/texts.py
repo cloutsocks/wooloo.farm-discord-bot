@@ -18,7 +18,7 @@ ADMIN_HELP = '''_Wooloo Admin Commands_
 
 `.announce <msg>` sends a message in a bot announcement to all active raid channels, raid-chat, and any other channels specified in the config
 `.announce <url with an image (png/jpg/etc)> <?msg>` sends an embed with an image and an option message
-`.announce <msg> votes= emoji, emoji, emoji` sends an embed with emojis added to it
+`.announce <msg> 🐄,🐈,🐖` sends an embed with emojis added to it
 `.raidsay` the same as announce, but sends a message from the bot without an embed
 `.say #channel <msg>` talk to a particular channel as wooloo (even unrelated to raids)
 `.maxpets <#>` sets the max # of pets before wooloo goes to sleep :zzz:
@@ -38,7 +38,7 @@ HOST_COMMANDS = '''`.host help` to show these commands
 `.max <#>` to adjust max raiders
 `.lock` to temporarily prevent new raiders from joining (without stopping the raid)
 `.private` to toggle a private raid (hide the code from lurkers)
-`.poll <poll message> votes=🐄,🐈,🐖` to make a poll
+`.poll <poll message> 🐄,🐈,🐖` to make a poll with reactions
 `.end` to end the raid
 `.echo <tag> <msg>` set a message you can recall with `.echo <tag>`
 **[NEW]** `.rename <name>` to rename channel
