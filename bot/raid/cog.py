@@ -914,7 +914,7 @@ _Managing a Raid_
                 await msg.add_reaction(reaction.strip('<> '))
 
         for raid in self.raids.values():
-            if not raid.closed:
+            if not raid.closed and raid.channel is not None:
                 msg = await raid.channel.send('', embed=e)
                 for reaction in emoji:
                     await msg.add_reaction(reaction.strip('<> '))
@@ -934,7 +934,7 @@ _Managing a Raid_
             await channel.send(msg)
 
         for raid in self.raids.values():
-            if not raid.closed:
+            if not raid.closed and raid.channel is not None:
                 await raid.channel.send(msg)
 
         await ctx.send('Sent!')
