@@ -329,6 +329,8 @@ _Managing a Raid_
         if m:
             options['emoji'] = options['raid_name'][0]
             options['raid_name'] = options['raid_name'][1:].strip()
+            if options['emoji'] in [CLOSED_EMOJI, LOCKED_EMOJI]:
+                options['emoji'] = None
 
         if 'ffa' in options['raid_name'].lower():
             options['mode'] = FFA
@@ -550,6 +552,18 @@ _Managing a Raid_
         if not name:
             return await send_message(ctx, f'You have to specify a new channel name.', error=True)
 
+        m = re.search(customEmojiPattern, name)
+        if m:
+            return await send_message(ctx, 'You cannot put images (custom emoji) into channel names on Discord.', error=True)
+
+        emoji = None
+        m = re.match(emojiPattern, name)
+        if m:
+            emoji = name[0]
+            if emoji in [CLOSED_EMOJI, LOCKED_EMOJI]:
+                emoji = RAID_EMOJI
+            name = name[1:].strip()
+
         target_raid = None
         for host_id, raid in self.raids.items():
             if raid and raid.channel == ctx.channel:
@@ -564,8 +578,10 @@ _Managing a Raid_
         if not target_raid:
             return await send_message(ctx, f'You may only do this in your active raid channel.', error=True)
 
-        updated_name = f'{target_raid.channel.name[0]}-{name}'
+        target_raid.emoji = emoji or RAID_EMOJI
+        updated_name = f'{target_raid.emoji}-{name}'
         await target_raid.channel.edit(name=updated_name)
+        await target_raid.update_channel_emoji()
         await ctx.message.add_reaction('✅')
 
 
