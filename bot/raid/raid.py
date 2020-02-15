@@ -191,7 +191,7 @@ class Raid(object):
         }
 
         options = {
-            CLOSED_EMOJI: 'to lock the raid until you unlock with `.lock`',
+            LOCKED_EMOJI: 'to lock the raid until you unlock with `.lock`',
             SPY_EMOJI: 'to hide the code from lurkers',
             EMOJI['pokeball']: 'to start the raid',
             EMOJI['masterball']: 'to start the raid & allow masterball users to join with priority',
@@ -273,7 +273,7 @@ class Raid(object):
                         await self.update_confirm_prompt()
 
             # options
-            elif emoji == CLOSED_EMOJI:
+            elif emoji == LOCKED_EMOJI:
                 self.locked = not self.locked
                 await self.update_confirm_prompt()
             elif emoji == SPY_EMOJI:

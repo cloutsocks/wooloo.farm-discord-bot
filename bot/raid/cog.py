@@ -329,7 +329,7 @@ _Managing a Raid_
         if m:
             options['emoji'] = options['raid_name'][0]
             options['raid_name'] = options['raid_name'][1:].strip()
-            if options['emoji'] in [CLOSED_EMOJI, LOCKED_EMOJI]:
+            if options['emoji'] in [LOCKED_EMOJI, CLOSED_EMOJI]:
                 options['emoji'] = None
 
         if 'ffa' in options['raid_name'].lower():
@@ -560,7 +560,7 @@ _Managing a Raid_
         m = re.match(emojiPattern, name)
         if m:
             emoji = name[0]
-            if emoji in [CLOSED_EMOJI, LOCKED_EMOJI]:
+            if emoji in [LOCKED_EMOJI, CLOSED_EMOJI]:
                 emoji = RAID_EMOJI
             name = name[1:].strip()
 
