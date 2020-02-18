@@ -558,11 +558,15 @@ _Managing a Raid_
 
         emoji = None
         m = re.match(emojiPattern, name)
+        print(name)
         if m:
+            print('match')
             emoji = name[0]
+            print(emoji)
             if emoji in [LOCKED_EMOJI, CLOSED_EMOJI]:
                 emoji = RAID_EMOJI
             name = name[1:].strip()
+            print(name)
 
         target_raid = None
         for host_id, raid in self.raids.items():

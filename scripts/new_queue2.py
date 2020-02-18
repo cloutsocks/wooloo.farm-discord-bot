@@ -1,8 +1,7 @@
 import random
 from collections import namedtuple
 
-
-Raider = namedtuple('Raider', ['uid', 'join_type', 'attempts'])
+# Raider = namedtuple('Raider', ['uid', 'join_type', 'attempts'], defaults=[0])
 
 class BalancedPool(object):
     def __init__(self):
@@ -10,8 +9,6 @@ class BalancedPool(object):
         self.group_miss = []
         self.q = []
         self.mb = []
-        self.made_it_in = []
-        self.attempts = {}
         self.used_mb = []
         self.join_history = []
         self.kicked = []
@@ -22,21 +19,19 @@ group: {self.group}
 group_miss: {self.group_miss}
 q: {self.q}
 mb: {self.mb}
-made_it_in: {self.made_it_in}
-attempts: {self.attempts}
 '''
 
     def size(self):
-        return len(self.mb) + len(self.q) + len(self.made_it_in)
+        return len(self.mb) + len(self.q)
 
     def remove(self, uid):
         if uid not in self.join_history:
             return False
 
         removed = False
-        for group in [self.mb, self.q, self.made_it_in]:
+        for collection in [self.mb, self.q]:
             try:
-                group.remove(uid)
+                collection.remove(uid)
                 removed = True
             except ValueError:
                 pass
@@ -44,23 +39,25 @@ attempts: {self.attempts}
         return removed
 
     def get_next(self, n=1, advance=False, retain=None):
-        out = []
+        if retain is None:
+            retain = []
 
-        mb_out = self.mb[:n]
-        out.extend(('mb', uid) for uid in mb_out)
+        out = [{**x, 'attempts': x['attempts'] + 1} for x in self.group if x['uid'] in retain]
+
+        mb_out = self.mb[:n - len(out)]
+        out.extend({'uid': uid, 'join_type': 'mb', 'attempts': 0} for uid in mb_out)
 
         if advance:
-            self.mb = self.mb[n:]
+            self.mb = self.mb[len(mb_out):]
 
         if len(out) < n:
             pb_out = self.q[:n - len(out)]
-            out.extend(('pb', uid) for uid in pb_out)
+            out.extend({'uid': uid, 'join_type': 'pb', 'attempts': 0} for uid in pb_out)
 
             if advance:
                 self.q[:] = self.q[len(pb_out):]
 
         return out
-
 
 class Test:
     def __init__(self):
@@ -72,10 +69,10 @@ class Test:
             self.do_round()
             print(f'Rd {self.round}')
             print(self.pool)
-            for (join_type, uid) in self.pool.group:
-                if join_type == 'pb':
+            for raider in self.pool.group:
+                if raider['join_type'] == 'pb':
                     if random.random() < 0.5:
-                        self.pool.group_miss.append(uid)
+                        self.pool.group_miss.append(raider['uid'])
                         # self.pool.group = [raider for raider in self.pool.group if raider[1] != uid]
 
             print(f'Misses: {self.pool.group_miss}')
@@ -87,25 +84,25 @@ class Test:
 
     def do_round(self):
         reinsert = []
-        for (join_type, uid) in self.pool.group:
-            if join_type == 'pb':
+        for raider in self.pool.group:
+            if raider['join_type'] == 'pb':
                 # print(uid, uid in self.pool.group_miss, self.pool.group_miss)
-                if uid in self.pool.group_miss:
-                    reinsert.append(uid)
-                    self.pool.attempts[uid] = self.pool.attempts.get(uid, 0) + 1
+                if raider['uid'] in self.pool.group_miss:
+                    reinsert.append(raider['uid'])
+                    raider['attempts']
+                    raider = raider._replace(attempts=raider['attempts']+1)
                 else:
-                    self.pool.made_it_in.append(uid)
-                    self.pool.attempts.pop(uid, None)
+                    self.pool.q.append(raider['uid'])
 
         self.pool.q = reinsert + self.pool.q
         size = self.pool.size()
         if size < 3:
             print('need more raiders')
 
-        if not self.pool.mb and not self.pool.q:
-            print('=== Everyone In! Refresh ===')
-            self.pool.q = self.pool.made_it_in[:]
-            self.pool.made_it_in = []
+        # if not self.pool.mb and not self.pool.q:
+        #     print('=== Everyone In! Refresh ===')
+        #     self.pool.q = self.pool.made_it_in[:]
+        #     self.pool.made_it_in = []
 
         self.round += 1
         self.pool.group = self.pool.get_next(5, advance=True)

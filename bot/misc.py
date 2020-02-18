@@ -97,6 +97,16 @@ class Misc(commands.Cog):
         await channel.send(arg)
         await ctx.message.add_reaction('✅')
 
+    @checks.is_wooloo_farm()
+    @checks.is_bot_admin()
+    @commands.command()
+    async def tradesay(self, ctx, *, arg):
+        msg = arg
+        trade_category = self.bot.get_channel(650910708900298752)
+        for channel in trade_category.text_channels:
+            await channel.send(msg)
+        await ctx.send('Sent!')
+
     @commands.command()
     async def testmax(self, ctx, *, arg):
         lens = arg.split(' ')

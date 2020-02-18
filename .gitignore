@@ -33,7 +33,6 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-.idea/
 .Python
 env/
 build/
@@ -66,7 +65,6 @@ htmlcov/
 .tox/
 .coverage
 .coverage.*
-.cache
 nosetests.xml
 coverage.xml
 *,cover
