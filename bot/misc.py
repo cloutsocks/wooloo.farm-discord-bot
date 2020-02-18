@@ -104,7 +104,10 @@ class Misc(commands.Cog):
         msg = arg
         trade_category = self.bot.get_channel(650910708900298752)
         for channel in trade_category.text_channels:
-            await channel.send(msg)
+            try:
+                await channel.send(msg)
+            except Exception as e:
+                pass
         await ctx.send('Sent!')
 
     @commands.command()
