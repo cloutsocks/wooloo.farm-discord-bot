@@ -81,8 +81,7 @@ class Misc(commands.Cog):
             return await send_message(ctx, '''You don't need to do votes= for emoji anymore, I'll pull them automatically.''', error=True)
 
         emoji = list(re.findall(emojiPattern, arg, flags=re.DOTALL)) + list(re.findall(customEmojiPattern, arg, flags=re.DOTALL))
-        e = discord.Embed(title="Poll time!", description=f"**<@{ctx.author.id}> asks:**\n{arg}")
-        msg = await ctx.send(embed=e)
+        msg = await ctx.send(f"**Poll time! <@{ctx.author.id}> asks:**\n{arg}")
         for reaction in emoji:
             await msg.add_reaction(reaction.strip('<> '))
 
