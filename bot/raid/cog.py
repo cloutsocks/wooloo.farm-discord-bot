@@ -878,7 +878,9 @@ _Managing a Raid_
     @checks.is_jacob()
     @commands.command(name='dangerclearall', aliases=['dangerca'])
     async def clear_all(self, ctx, arg=None):
+        await ctx.send('Clearing...')
         await self.clear_channels_dirty()
+        await ctx.send('Done.')
 
     @checks.is_jacob()
     @commands.command()

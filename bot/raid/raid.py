@@ -434,19 +434,18 @@ _This raid was hosted by <@{self.host_id}>_
 
         if self.mode != FFA:
             if self.pool.group:
-                group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in self.pool.group])
+                group_text = ' '.join([f'''<@{t['uid']}>''' if mentions else self.member_name(t['uid']) for t in self.pool.group])
                 sections.append(f'**Current Group**\n{group_text}')
 
             next_up = self.pool.get_next(5 if self.mode == BALANCED else 3, advance=False)
-            group_text = ' '.join([f'<@{t[1]}>' if mentions else self.member_name(t[1]) for t in next_up])
+            group_text = ' '.join([f'''<@{t['uid']}>''' if mentions else self.member_name(t['uid']) for t in next_up])
             sections.append(f'**Next Call**\n{group_text}')
 
             lines = [f"{EMOJI['masterball']} " + (f"<@{uid}>" if mentions else self.member_name(uid)) for uid in
                      self.pool.mb]
+
         for i, uid in enumerate(self.pool.q):
             lines.append(f"`{i + 1: >2}` " + (f"<@{uid}>" if mentions else self.member_name(uid)))
-
-
 
         title = 'Active Raiders' if self.mode == FFA else 'Queue'
         lines = '\n'.join(lines)
@@ -513,9 +512,9 @@ _This raid was hosted by <@{self.host_id}>_
             await self.new_strict_round(ctx)
 
     async def new_strict_round(self, ctx):
-        reinsert = [uid for (join_type, uid) in self.pool.group if join_type == 'pb']
+        reinsert = [t['uid'] for t in self.pool.group if t['join_type'] == 'pb']
 
-        size = self.pool.size() + len(reinsert)
+        size = self.pool.size() - len(self.pool.group) + len(reinsert)
         if size < 3:
             return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
 
@@ -551,17 +550,16 @@ _This raid was hosted by <@{self.host_id}>_
 
         mentions = []
         for i, raider in enumerate(self.pool.group):
-            join_type, raider_id = raider
             if self.private:
-                user = self.bot.get_user(raider_id)
+                user = self.bot.get_user(raider['uid'])
                 if user:
                     await user.send(f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn! But keep in mind you may be skipped, so check on the channel as well.''')
 
-            mention = f'<@{raider_id}>'
+            mention = f'''<@{raider['uid']}>'''
             mentions.append(mention)
-            profile = await self.bot.trainers.get_wf_profile(raider_id, ctx)
+            profile = await self.bot.trainers.get_wf_profile(raider['uid'], ctx)
             profile_info = fc_as_text(profile)
-            icon = EMOJI['masterball'] if join_type == 'mb' else EMOJI['pokeball']
+            icon = EMOJI['masterball'] if raider['join_type'] == 'mb' else EMOJI['pokeball']
             raider_text = f'{icon} {mention}\n{profile_info}{FIELD_BREAK}'
 
             # if i < len(self.pool.group) - 1:
@@ -570,7 +568,7 @@ _This raid was hosted by <@{self.host_id}>_
             e.add_field(name=str(i + 1), value=raider_text, inline=False)
 
         next_up = self.pool.get_next(3, advance=False)
-        group_text = '🕑 ' + ' '.join([f'<@{t[1]}>' for t in next_up])
+        group_text = '🕑 ' + ' '.join([f'''<@{t['uid']}>''' for t in next_up])
         e.add_field(name='Next Round', value=group_text, inline=False)
 
         try:
@@ -618,7 +616,7 @@ _This raid was hosted by <@{self.host_id}>_
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return await member.send(f"This raid is **locked** and not accepting new joins, but the host may choose to unlock it. {EMOJI['flop']}")
 
-            if self.pool.size() + len(self.pool.group) >= self.max_joins:
+            if self.pool.size() >= self.max_joins:
                 await self.bot.misc.remove_raw_reaction(payload, user)
                 return await member.send(
                     f"Unfortunately, that raid is full! Try another one or wait a little bit and check back.")
@@ -742,7 +740,7 @@ _This raid was hosted by <@{self.host_id}>_
     async def skip(self, member, ctx):
 
         async with self.lock:
-            uids = [t[1] for t in self.pool.group]
+            uids = [t['uid'] for t in self.pool.group]
             try:
                 to_remove = uids.index(member.id)
             except ValueError:
@@ -753,21 +751,21 @@ _This raid was hosted by <@{self.host_id}>_
                 await ctx.send(f'{str(member)} **cannot be skipped** right now as there is nobody to take their place.')
                 return
 
-            join_type, uid = self.pool.group[to_remove]
+            skipped = self.pool.group[to_remove]
             del self.pool.group[to_remove]
             replacement = self.pool.get_next(advance=True)
             self.pool.group += replacement
 
-            if uid not in self.pool.kicked:
+            if skipped['uid'] not in self.pool.kicked:
                 # If a Master Ball user was skipped, put them into the regular queue.
-                self.pool.q.append(uid)
+                self.pool.q.append(skipped['uid'])
 
             if self.private:
-                user = self.bot.get_user(replacement[0][1])
+                user = self.bot.get_user(replacement[0]['uid'])
                 if user:
                     await user.send( f'''**{self.code}** is the private code for `{self.raid_name}` - it's your turn (as a replacement)! But keep in mind you may be skipped, so check on the channel as well.''')
 
-        msg = f"<@{uid}> has been skipped and **should not join.** <@{replacement[0][1]}> will take <@{uid}>'s place in this round."
+        msg = f'''<@{skipped['uid']}> has been skipped and **should not join.** <@{replacement[0]['uid']}> will take <@{skipped['uid']}>'s place in this round.'''
 
         return await ctx.send(msg)
 
@@ -911,7 +909,7 @@ _This channel will automatically delete in a little while_ {EMOJI['flop']}'''
         if self.locked:
             emoji = LOCKED_EMOJI
         else:
-            pool_size = self.pool.size() + len(self.pool.group)
+            pool_size = self.pool.size()
             if pool_size >= self.max_joins:
                 emoji = LOCKED_EMOJI
             else:
