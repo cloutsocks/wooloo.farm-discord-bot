@@ -1,10 +1,10 @@
 class Pool(object):
     def __init__(self):
         self.group = []
-        self.q = [340838512834117632, 232650437617123328, 340838512834117632, 232650437617123328,340838512834117632, 232650437617123328, 340838512834117632, 232650437617123328]
+        self.q = []
         self.mb = []
         self.used_mb = []
-        self.join_history = [340838512834117632, 232650437617123328]
+        self.join_history = []
         self.kicked = []
         self.group_miss = []
 

@@ -291,8 +291,6 @@ class Raid(object):
                 return await self.cog.cancel_before_confirm(self, channel_ctx,
                                                              f'Unfortunately, we already have the maximum number of **{self.cog.max_raids}** raids being hosted. Please wait a bit and try again later.')
 
-            # todo verify can host?
-
             if self.mode == FFA and 'ffa' not in self.raid_name.lower():
                 self.raid_name = f'''ffa {self.raid_name}'''
 
@@ -486,8 +484,6 @@ _This raid was hosted by <@{self.host_id}>_
             if self.closed or not self.channel:
                 return
 
-            # todo max rounds
-
             if ctx.channel != self.channel:
                 return await send_message(ctx, f'Please initialize rounds in the actual raid channel.', error=True)
 
@@ -510,6 +506,9 @@ _This raid was hosted by <@{self.host_id}>_
 
             self.code = code
             await self.new_strict_round(ctx)
+
+    async def new_balanced_round(self, ctx):
+        pass
 
     async def new_strict_round(self, ctx):
         reinsert = [t['uid'] for t in self.pool.group if t['join_type'] == 'pb']
@@ -579,8 +578,6 @@ _This raid was hosted by <@{self.host_id}>_
         self.last_round_message = await ctx.send(' '.join(mentions), embed=e)
         await self.last_round_message.pin()
 
-    async def new_standard_round(self, ctx):
-        pass
 
     '''
     joins/leaves
@@ -697,6 +694,26 @@ _This raid was hosted by <@{self.host_id}>_
 
             # repeated action workaround discord
             await self.channel.set_permissions(member, overwrite=None)
+
+    async def miss(self, user, ctx):
+        async with self.lock:
+            if self.closed:
+                return False
+
+            if self.mode != BALANCED:
+                await send_message(ctx, '`.miss` only works in balanced mode', error=True)
+                return False
+
+            uid = user.id
+            uids = [t['uid'] for t in self.pool.group]
+            if not uid in uids:
+                await send_message(ctx, '''You're not in the curent group... you shouldn't have attempted to join.''', error=True)
+                return False
+
+            self.pool.add_miss(uid)
+        await ctx.send(f'''❌ **Miss!** _<@{user.id} was unable to make it in!_\ntodo current group status''')
+        # todo current miss status
+        return True
 
 
     async def send_join_msg(self, member, join_type):

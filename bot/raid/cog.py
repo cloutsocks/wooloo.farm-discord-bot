@@ -389,6 +389,12 @@ _Managing a Raid_
 
         return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
+
+    # todo
+    @commands.command()
+    async def remake(self, ctx, *, arg=None):
+        pass
+
     '''
     host moderation
     '''
@@ -825,6 +831,18 @@ _Managing a Raid_
                     return
                 await ctx.message.add_reaction('✅')
                 return await raid.user_leave(user, True)
+
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
+
+    @commands.command()
+    async def miss(self, ctx, arg=None):
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                user = self.bot.get_user(ctx.author.id)
+                if not user:
+                    print(f'[ERROR] Could not `get_user` for `.miss` with id {ctx.author.id}')
+                    return
+                return await raid.miss(user)
 
         return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
