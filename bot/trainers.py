@@ -23,9 +23,9 @@ async def get_user_by_credential(realm, identifier, endpoint=ENDPOINT):
         return await r.json()
 
 
-async def has_wf_ban(uid):
+async def has_wf_ban(uid, endpoint):
     async with aiohttp.ClientSession() as session:
-        r = await session.get('https://discord-removal-appeals.wooloo.farm/_check',
+        r = await session.get((endpoint),
                               params={'id': uid})
         if r.status not in (204, 404):
             r.raise_for_status()
@@ -166,7 +166,7 @@ class Trainers(commands.Cog):
 
         # todo check block list
 
-        wf_ban = await has_wf_ban(member.id)
+        wf_ban = await has_wf_ban(member.id, self.bot.config['wf_ban_endpoint'])
         if wf_ban:
             print(f'{member} (ID: {member.id}) is BANNED from raiding by authoritative server.')
             return False, 'WF_BAN'
@@ -187,6 +187,11 @@ class Trainers(commands.Cog):
         hri, err = has_raid_info(profile)
         if not hri:
             return hri, err
+
+        wf_ban = await has_wf_ban(member.id, self.bot.config['wf_ban_endpoint'])
+        if wf_ban:
+            print(f'{member} (ID: {member.id}) is BANNED from hosting by authoritative server.')
+            return False, 'WF_BAN'
 
         return True, None
 
