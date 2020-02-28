@@ -114,7 +114,7 @@ class Trainers(commands.Cog):
 
         profile = await self.get_wf_profile(uid, ctx, refresh=True)
         if not profile:
-            return await send_message(ctx, f'<@{uid}> does not have a profile on http://wooloo.farm/', error=True)
+            await ctx.send(f'<@{uid}> does not have a profile on http://wooloo.farm/')
 
         await ctx.send(f'<@{uid}>\n```{pprint.pformat(profile)}```')
 
