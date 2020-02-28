@@ -3,11 +3,13 @@ from collections import namedtuple
 
 import aiohttp
 import discord
+import pprint
+
 import checks
+
 from discord.ext import commands
 
-from common import send_message, resolve_mention, send_user_not_found, \
-    EMOJI, DBL_BREAK
+from common import send_message, resolve_mention, send_user_not_found, idPattern, EMOJI, DBL_BREAK
 
 CardRecord = namedtuple('CardRecord',
                         'discord_id, discord_name, fc, ign, switch_name, title_1, title_2, pkmn_icon, color, img, quote')
@@ -103,13 +105,18 @@ class Trainers(commands.Cog):
 
     @checks.is_bot_admin()
     @commands.command()
-    async def wf(self, ctx, uid:int):
+    async def wf(self, ctx, arg):
+
+        uid = arg
+        match = idPattern.search(uid)
+        if match:
+            uid = int(match.group(1))
 
         profile = await self.get_wf_profile(uid, ctx, refresh=True)
         if not profile:
             return await send_message(ctx, f'<@{uid}> does not have a profile on http://wooloo.farm/', error=True)
 
-        await ctx.send(f'<@{uid}>\n{profile}')
+        await ctx.send(f'<@{uid}>\n```{pprint.pp(profile)}')
 
     @commands.command()
     async def fc(self, ctx, *, arg=''):

@@ -900,7 +900,7 @@ _Managing a Raid_
         await self.clear_channels_dirty()
         await ctx.send('Done.')
 
-    @checks.is_jacob()
+    @commands.check_any(checks.is_jacob(), checks.is_wooloo_staff())
     @commands.command()
     async def pause(self, ctx, arg=None):
         self.creating_enabled = not self.creating_enabled
