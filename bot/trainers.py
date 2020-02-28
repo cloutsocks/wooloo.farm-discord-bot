@@ -116,7 +116,7 @@ class Trainers(commands.Cog):
         if not profile:
             return await send_message(ctx, f'<@{uid}> does not have a profile on http://wooloo.farm/', error=True)
 
-        await ctx.send(f'<@{uid}>\n```{pprint.pp(profile)}')
+        await ctx.send(f'<@{uid}>\n```{pprint.pformat(profile)}```')
 
     @commands.command()
     async def fc(self, ctx, *, arg=''):
