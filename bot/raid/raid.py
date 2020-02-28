@@ -508,14 +508,26 @@ _This raid was hosted by <@{self.host_id}>_
             await self.new_strict_round(ctx)
 
     async def new_balanced_round(self, ctx):
-        pass
+        for raider in self.pool.group:
+            if raider['uid'] not in self.pool.group_miss:
+                self.pool.group.remove(raider)
+                if raider['join_type'] == 'pb':
+                    self.pool.q.append(raider['uid'])
+
+        # call get next based on remaining slots
+
+
+
+
+        skipped = self.pool.group[to_remove]
+        del self.pool.group[to_remove]
+
 
     async def new_strict_round(self, ctx):
         reinsert = [t['uid'] for t in self.pool.group if t['join_type'] == 'pb']
 
-        size = self.pool.size() - len(self.pool.group) + len(reinsert)
-        if size < 3:
-            return await send_message(ctx, f'There are currently **{size}** participants, but You need at least **3** to start a raid.', error=True)
+        if self.pool.size() == len(reinsert) == 0:
+            return await send_message(ctx, f'''There's no one in the queue :(''', error=True)
 
         self.round += 1
         self.pool.q.extend(reinsert)

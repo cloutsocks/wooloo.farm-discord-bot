@@ -3,6 +3,7 @@ from collections import namedtuple
 
 import aiohttp
 import discord
+import checks
 from discord.ext import commands
 
 from common import send_message, resolve_mention, send_user_not_found, \
@@ -100,29 +101,29 @@ class Trainers(commands.Cog):
 
         return self.wfcache[uid]['profile']
 
+    @checks.is_bot_admin()
     @commands.command()
-    async def wf(self, ctx, *, arg=None):
-        refresh = arg and arg.strip() == 'refresh'
-        if not arg or refresh:
-            member = ctx.author
-        else:
-            member = resolve_mention(ctx.message.guild, arg, False)
-            if not member:
-                return await send_user_not_found(ctx, arg)
+    async def wf(self, ctx, uid:int):
 
-        profile = await self.get_wf_profile(member.id, ctx, refresh)
+        profile = await self.get_wf_profile(uid, ctx, refresh=True)
         if not profile:
-            return await send_message(ctx, f'{str(member)} does not have a profile on http://wooloo.farm/', error=True)
+            return await send_message(ctx, f'<@{uid}> does not have a profile on http://wooloo.farm/', error=True)
 
-        await ctx.send(f'{str(member)}\n{profile}')
+        await ctx.send(f'<@{uid}>\n{profile}')
 
     @commands.command()
-    async def fc(self, ctx, *, arg=None):
+    async def fc(self, ctx, *, arg=''):
         await self.view_fc(ctx, arg, False)
 
     @commands.command()
-    async def fcr(self, ctx, *, arg=None):
+    async def fcr(self, ctx, *, arg=''):
         await self.view_fc(ctx, arg, True)
+
+    @commands.command(aliases=['bl'])
+    async def blacklist(self, ctx, *, arg=''):
+        msg = 'Coming soon! Last update: NEVER'
+        await ctx.author.send(msg)
+        await ctx.message.delete()
 
     async def view_fc(self, ctx, arg, refresh=False):
         if not arg or refresh:
