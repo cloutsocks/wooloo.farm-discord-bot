@@ -38,6 +38,11 @@ SPY_EMOJI = '🕵️'
 
 
 EMOJI = {
+
+    'wooletter': '<:WFwooletter:683382614458892343>',
+    'woopet': '<:WFwoopet:683382613691596971>',
+    'wowloo': '<:WFwowloo:683382614358491175>',
+
     'wuwu': '<:wuwu:676228384615038988>',
     'flop': '<:woolooflop:676228385642381322>',
     'wooloo_fast': '<a:wooloofast:676228383528714240>',
