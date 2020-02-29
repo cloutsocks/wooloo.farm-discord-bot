@@ -59,7 +59,11 @@ class Cog(commands.Cog):
         print('[DB] Init')
         self.make_db()
         await self.load_raids_from_db()
-        self.save_interval.start()
+        try:
+            self.save_interval.start()
+        except Exception as e:
+            print('Attempting to restart, save Interval Exception: {type(e).__name__}, {e}')
+            await self.bot.misc.execute_restart(by_command=False)
         self.loaded = True
 
     def reload_deps(self):
@@ -110,6 +114,7 @@ class Cog(commands.Cog):
         # print(f'[DB] Attempting to load raids...')
         if self.raids:
             print('[DB ERROR] `self.raids` already exists, should be empty')
+            await self.bot.misc.execute_restart(by_command=False)
 
         t = time.time()
         c = self.db.cursor()

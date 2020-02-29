@@ -2,6 +2,7 @@ import re
 
 import discord
 import random
+import sys
 
 import discord
 from discord.ext import commands
@@ -15,6 +16,16 @@ class Misc(commands.Cog):
         self.bot = bot
         self.pets = 0
         self.max_pets = 3
+
+    @checks.is_bot_admin()
+    @commands.command()
+    async def restart(self, ctx, arg=''):
+        await ctx.send('Force restarting the botte, this should not be done often or repeatedly or you risk being blacklisted by Discord.')
+        self.execute_restart(by_command=True)
+
+    def execute_restart(self, by_command):
+        print('[SYS] Restarting by command' if by_command else '[SYS] Restarting')
+        sys.exit(1)
 
     async def remove_raw_reaction(self, payload, user=None):
         if not user:
