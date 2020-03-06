@@ -388,11 +388,25 @@ _Managing a Raid_
 
     @commands.command()
     async def up(self, ctx, *, arg=None):
-        uid = ctx.author.id
-        if uid in self.raids:
-            return await self.raids[uid].up_command(ctx, arg)
+        target_raid = None
+        is_host = False
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+                target_raid = raid
+                break
 
-        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
+        if not target_raid:
+            return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
+
+        if not is_host:
+            if len(target_raid.ups) == 0:
+                msg = f'''The host hasn't told me what the current Pokémon is! They can use `.up pokémon` to tell me!'''
+            else:
+                msg = f'''The current Pokémon is **{target_raid.ups[-1]}**! Here's a list of all so far: {target_raid.ups}'''
+            return await ctx.send(msg)
+
+        await target_raid.up_command(ctx, arg)
 
 
     # todo
@@ -471,7 +485,7 @@ _Managing a Raid_
             return await send_message(ctx, '', error=True, image_url=escuchameUrl)
 
         if action == 'skip':
-            return await target_raid.skip(member, ctx)
+            return await target_raid.skip(member)
 
         if action == 'remove':
             return await target_raid.kick(member, ctx)
@@ -713,7 +727,7 @@ _Managing a Raid_
                     return await ctx.send('', embed=e)
                 await ctx.message.add_reaction('✅')
                 e = raid.make_queue_embed(mentions=False, cmd=ctx.invoked_with)
-                return await ctx.author.send(raid.raid_name, embed=e)\
+                return await ctx.author.send(raid.raid_name, embed=e)
 
         return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 

@@ -516,9 +516,6 @@ _This raid was hosted by <@{self.host_id}>_
 
         # call get next based on remaining slots
 
-
-
-
         skipped = self.pool.group[to_remove]
         del self.pool.group[to_remove]
 
@@ -685,6 +682,9 @@ _This raid was hosted by <@{self.host_id}>_
             if not member:
                 return
             await self.channel.set_permissions(member, overwrite=None)
+            await self.channel.send(f"{EMOJI['leave']} <@{member.id}> has left the raid.")
+            await self.skip(member)
+
             text = ', but you can rejoin at any time.' if uid not in self.pool.used_mb else '. You won\'t be able to rejoin, as you used a masterball.'
 
             profile = await self.bot.trainers.get_wf_profile(self.host_id)
@@ -706,6 +706,8 @@ _This raid was hosted by <@{self.host_id}>_
 
             # repeated action workaround discord
             await self.channel.set_permissions(member, overwrite=None)
+
+
 
     async def miss(self, user, ctx):
         async with self.lock:
@@ -766,18 +768,20 @@ _This raid was hosted by <@{self.host_id}>_
     management
     '''
 
-    async def skip(self, member, ctx):
+    async def skip(self, member, supress_no_skip=False):
 
         async with self.lock:
             uids = [t['uid'] for t in self.pool.group]
             try:
                 to_remove = uids.index(member.id)
             except ValueError:
-                return await ctx.send(
-                    f'There\'s no need to skip {str(member)} as they aren\'t in the current round. Type `.q` to see it.')
+                if not supress_no_skip:
+                    await self.channel.send(f'There\'s no need to skip {str(member)} as they aren\'t in the current round. Type `.q` to see it.')
+                return
 
             if not self.pool.get_next(advance=False):
-                await ctx.send(f'{str(member)} **cannot be skipped** right now as there is nobody to take their place.')
+                # todo fix for leave
+                await self.channel.send(f'{str(member)} **cannot be skipped** right now as there is nobody to take their place.')
                 return
 
             skipped = self.pool.group[to_remove]
@@ -796,7 +800,7 @@ _This raid was hosted by <@{self.host_id}>_
 
         msg = f'''<@{skipped['uid']}> has been skipped and **should not join.** <@{replacement[0]['uid']}> will take <@{skipped['uid']}>'s place in this round.'''
 
-        return await ctx.send(msg)
+        return await self.channel.send(msg)
 
     async def kick(self, member, ctx):
 
@@ -816,7 +820,7 @@ _This raid was hosted by <@{self.host_id}>_
 
         await self.cog.log_channel.send(
             f'<@{self.host_id}> (ID: {self.host_id}) (or an admin) **kicked** {show_member_for_log(member)} in {str(self.channel)} (`{self.channel.name}`)')
-        await self.skip(member, ctx)
+        await self.skip(member)
 
     async def block(self, member, ctx):
         pass

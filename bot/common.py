@@ -57,6 +57,7 @@ EMOJI = {
     'pokeball': '<:pb:676228383201296414>',
     'nonono': '<a:nononohoney:676228383419662377>',
     'join': '<:memberjoin:676228383058690108>',
+    'leave': '<:bluearrow:685633836712722442>',
     'masterball': '<:mb:676228383218204672>',
     'lovehonk': '<:lovehonk:676228729097289748>',
     'lily': '<:lily:676228383100764160>',
