@@ -676,7 +676,7 @@ _This raid was hosted by <@{self.host_id}>_
                 return
             uid = user.id
             removed = self.pool.remove(uid)
-            if not removed and uid not in self.pool.group:
+            if not removed and not self.pool.in_group(uid):
                 return
 
         member = self.guild.get_member(uid)

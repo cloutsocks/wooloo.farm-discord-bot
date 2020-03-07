@@ -11,6 +11,10 @@ class Pool(object):
     def size(self):
         return len(self.mb) + len(self.q) + len(self.group)
 
+    def in_group(self, uid):
+        uids = [t['uid'] for t in self.group]
+        return id in uids
+
     def remove(self, uid):
         if uid not in self.join_history:
             return False
