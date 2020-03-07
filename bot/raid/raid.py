@@ -684,7 +684,8 @@ _This raid was hosted by <@{self.host_id}>_
             return
         await self.channel.set_permissions(member, overwrite=None)
         await self.channel.send(f"{EMOJI['leave']} <@{member.id}> has left the raid.")
-        await self.skip(member)
+        if self.mode != FFA:
+            await self.skip(member, supress_no_skip=True)
 
         text = ', but you can rejoin at any time.' if uid not in self.pool.used_mb else '. You won\'t be able to rejoin, as you used a masterball.'
 
