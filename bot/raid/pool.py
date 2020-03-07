@@ -13,7 +13,7 @@ class Pool(object):
 
     def in_group(self, uid):
         uids = [t['uid'] for t in self.group]
-        return id in uids
+        return uid in uids
 
     def remove(self, uid):
         if uid not in self.join_history:
