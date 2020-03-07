@@ -82,12 +82,12 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    uid = message.author.id
     await bot.process_commands(message)
 
-    if message.guild is None:
-        return
+    # if message.guild is None:
+    #     return
 
+    uid = message.author.id
     if uid in bot.wfm:
         waiter = bot.wfm[uid]
         if waiter['channel'] != message.channel:

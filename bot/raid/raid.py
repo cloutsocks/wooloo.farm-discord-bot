@@ -678,35 +678,35 @@ _This raid was hosted by <@{self.host_id}>_
             removed = self.pool.remove(uid)
             if not removed:
                 return
-            member = self.guild.get_member(uid)
-            if not member:
-                return
-            await self.channel.set_permissions(member, overwrite=None)
-            await self.channel.send(f"{EMOJI['leave']} <@{member.id}> has left the raid.")
-            await self.skip(member)
 
-            text = ', but you can rejoin at any time.' if uid not in self.pool.used_mb else '. You won\'t be able to rejoin, as you used a masterball.'
+        member = self.guild.get_member(uid)
+        if not member:
+            return
+        await self.channel.set_permissions(member, overwrite=None)
+        await self.channel.send(f"{EMOJI['leave']} <@{member.id}> has left the raid.")
+        await self.skip(member)
 
-            profile = await self.bot.trainers.get_wf_profile(self.host_id)
-            profile_info = fc_as_text(profile)
-            raider_text = f'👑 <@{self.host_id}>\n{profile_info}{FIELD_BREAK}'
-            e = discord.Embed(title='Host Details', description=raider_text)
-            await member.send(
-                f'You have left the `{self.raid_name}` raid{text} You **have** to remove the host from your friend list now, even if you plan to continue raiding with them later. Otherwise, you may be blocked or banned from raiding altogether.',
-                embed=e)
+        text = ', but you can rejoin at any time.' if uid not in self.pool.used_mb else '. You won\'t be able to rejoin, as you used a masterball.'
 
-            if remove_reaction:
-                try:
-                    await self.listing_message.remove_reaction(EMOJI['pokeball'], user)
-                    await self.listing_message.remove_reaction(EMOJI['masterball'], user)
-                except Exception as e:
-                    pass
+        profile = await self.bot.trainers.get_wf_profile(self.host_id)
+        profile_info = fc_as_text(profile)
+        raider_text = f'👑 <@{self.host_id}>\n{profile_info}{FIELD_BREAK}'
+        e = discord.Embed(title='Host Details', description=raider_text)
+        await member.send(
+            f'You have left the `{self.raid_name}` raid{text} You **have** to remove the host from your friend list now, even if you plan to continue raiding with them later. Otherwise, you may be blocked or banned from raiding altogether.',
+            embed=e)
 
-            await self.update_channel_emoji()
+        if remove_reaction:
+            try:
+                await self.listing_message.remove_reaction(EMOJI['pokeball'], user)
+                await self.listing_message.remove_reaction(EMOJI['masterball'], user)
+            except Exception as e:
+                pass
 
-            # repeated action workaround discord
-            await self.channel.set_permissions(member, overwrite=None)
+        await self.update_channel_emoji()
 
+        # repeated action workaround discord
+        await self.channel.set_permissions(member, overwrite=None)
 
 
     async def miss(self, user, ctx):
