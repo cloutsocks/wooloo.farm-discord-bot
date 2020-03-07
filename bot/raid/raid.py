@@ -775,8 +775,12 @@ _This raid was hosted by <@{self.host_id}>_
 
         async with self.lock:
             uids = [t['uid'] for t in self.pool.group]
+            print('----')
+            print(uids)
+            print(member.id)
             try:
                 to_remove = uids.index(member.id)
+                print('to remove', to_remove)
             except ValueError:
                 if not supress_no_skip:
                     await self.channel.send(f'There\'s no need to skip {str(member)} as they aren\'t in the current round. Type `.q` to see it.')
