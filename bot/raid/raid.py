@@ -676,7 +676,7 @@ _This raid was hosted by <@{self.host_id}>_
                 return
             uid = user.id
             removed = self.pool.remove(uid)
-            if not removed:
+            if not removed and uid not in self.pool.group:
                 return
 
         member = self.guild.get_member(uid)
@@ -684,8 +684,8 @@ _This raid was hosted by <@{self.host_id}>_
             return
         await self.channel.set_permissions(member, overwrite=None)
         await self.channel.send(f"{EMOJI['leave']} <@{member.id}> has left the raid.")
-        # if self.mode != FFA:
-        #     await self.skip(member, supress_no_skip=True)
+        if self.mode != FFA:
+            await self.skip(member, supress_no_skip=True)
         await self.skip(member)
 
 
