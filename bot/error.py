@@ -55,6 +55,9 @@ class CommandErrorHandler(commands.Cog):
             except:
                 pass
 
+        elif isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send(f'{ctx.invoked_with} is currently on cooldown, please try again in {round(error.retry_after, 1)} seconds.')
+
         # For this error example we check to see where it came from...
         elif isinstance(error, commands.BadArgument):
             if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'

@@ -38,9 +38,25 @@ class Misc(commands.Cog):
         await message.remove_reaction(payload.emoji, user)
 
     @commands.command()
-    async def raffle(self, ctx, n:int, msg_id:int, channel_id:int = 663479080192049172):
-        channel = self.bot.get_channel(channel_id)
-        msg = await channel.fetch_message(msg_id)
+    @commands.cooldown(1, 180.0, type=commands.BucketType.user)
+    async def raffle(self, ctx, *, arg=''):
+        try:
+            n = int(arg)
+            if n < 1 or n > 100:
+                raise ValueError
+        except ValueError:
+            ctx.command.reset_cooldown(ctx)
+            return await send_message(ctx, f'Please specify the number of winnners, i.e. `.raffle 1` or `.raffle 3`', error=True)
+
+        not_found = 'I could not find a message from you in the #raffles channel that has the phrase `Raffle Time!` within the last 100 messages. Either edit the post to include `Raffle Time!` or conduct the raffle yourself.'
+        channel = self.bot.get_channel(663479080192049172)
+        msg = await channel.history(limit=100).get(author__id=ctx.author.id)
+        if not msg or 'raffle time!' not in msg.content.lower():
+            await ctx.send(not_found)
+            return
+
+        if not msg.reactions:
+            return await send_message(ctx, f'Your last raffle post does not have any reactions on it.', error=True)
 
         for reaction in msg.reactions:
             users = await reaction.users().flatten()
@@ -54,6 +70,7 @@ class Misc(commands.Cog):
             mentions = ' '.join([str(winner.mention) for winner in winners])
 
             await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```{mentions}```')
+
 
     @commands.command()
     async def pet(self, ctx):
