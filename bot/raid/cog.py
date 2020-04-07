@@ -1042,6 +1042,12 @@ _Managing a Raid_
         channel_name = f"{emoji}-{raid_name.replace(' ', '-')}"[:100]
         return re.sub('[<>]', '', channel_name)
 
+    @checks.is_jacob()
+    @commands.command(name='manualconfigure')
+    async def manual_configure(self, ctx, arg=None):
+        self.configure()
+        await ctx.send(f'Finished.')
+
     def configure(self):
         self.category = self.bot.get_channel(self.bot.config['raids_cid'])
         print(f'''Attempted to load raid category {self.bot.config['raids_cid']}: / {self.category}''')
