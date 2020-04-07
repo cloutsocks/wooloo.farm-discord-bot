@@ -5,6 +5,7 @@ import sqlite3
 import time
 import importlib
 import sys
+import asyncio
 
 import discord
 from discord.ext import tasks, commands
@@ -54,7 +55,10 @@ class Cog(commands.Cog):
     async def on_load(self):
         self.loaded = False
 
-        self.configure()
+        configured = self.configure()
+        while not configured:
+            await asyncio.sleep(5)
+            configured = self.configure()
 
         print('[DB] Init')
         self.make_db()
@@ -1049,27 +1053,34 @@ _Managing a Raid_
         await ctx.send(f'Finished.')
 
     def configure(self):
-        print(f'Configure step, bot ready: {self.bot.is_ready()}')
-        self.category = self.bot.get_channel(self.bot.config['raids_cid'])
-        print(f'''Attempted to load raid category {self.bot.config['raids_cid']}: / {self.category}''')
-        self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
-        print(f'''Attempted to load archive category {self.bot.config['archive_cid']}: / {self.archive}''')
+        try:
+            print(f'Configure step, bot ready: {self.bot.is_ready()}')
+            self.category = self.bot.get_channel(self.bot.config['raids_cid'])
+            if not self.category:
+                return False
+            
+            print(f'''Attempted to load raid category {self.bot.config['raids_cid']}: / {self.category}''')
+            self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
+            print(f'''Attempted to load archive category {self.bot.config['archive_cid']}: / {self.archive}''')
 
-        self.guild = self.category.guild
-        print(f'''Set guilt to self.category.guild: {self.category.guild}''')
+            self.guild = self.category.guild
+            print(f'''Set guilt to self.category.guild: {self.category.guild}''')
 
-        self.listing_channel = self.bot.get_channel(self.bot.config['listing_channel'])
-        print(f'''Attempted to load listing channel {self.bot.config['listing_channel']}: / {self.listing_channel}''')
-        self.thanks_channel = self.bot.get_channel(self.bot.config['thanks_channel'])
-        print(f'''Attempted to load thanks channel {self.bot.config['thanks_channel']}: / {self.thanks_channel}''')
-        self.log_channel = self.bot.get_channel(self.bot.config['log_channel'])
-        print(f'''Attempted to load log channel {self.bot.config['log_channel']}: / {self.log_channel}''')
-        self.announce_channels = [self.bot.get_channel(cid) for cid in self.bot.config['announce_channels']]
-        print(f'''Attempted to announce channels {self.bot.config['announce_channels']}: / {self.announce_channels}''')
+            self.listing_channel = self.bot.get_channel(self.bot.config['listing_channel'])
+            print(f'''Attempted to load listing channel {self.bot.config['listing_channel']}: / {self.listing_channel}''')
+            self.thanks_channel = self.bot.get_channel(self.bot.config['thanks_channel'])
+            print(f'''Attempted to load thanks channel {self.bot.config['thanks_channel']}: / {self.thanks_channel}''')
+            self.log_channel = self.bot.get_channel(self.bot.config['log_channel'])
+            print(f'''Attempted to load log channel {self.bot.config['log_channel']}: / {self.log_channel}''')
+            self.announce_channels = [self.bot.get_channel(cid) for cid in self.bot.config['announce_channels']]
+            print(f'''Attempted to announce channels {self.bot.config['announce_channels']}: / {self.announce_channels}''')
 
-        self.admin_roles = [self.guild.get_role(rid) for rid in self.bot.config['raid_admin_roles']]
-        self.max_raids = self.bot.config['max_raids']
+            self.admin_roles = [self.guild.get_role(rid) for rid in self.bot.config['raid_admin_roles']]
+            self.max_raids = self.bot.config['max_raids']
+        except Exception as e:
+            return False
         print('[CONFIG] Loaded')
+        return True
 
 
 def setup(bot):
