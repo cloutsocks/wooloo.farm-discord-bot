@@ -1049,6 +1049,7 @@ _Managing a Raid_
         await ctx.send(f'Finished.')
 
     def configure(self):
+        print(f'Configure step, bot ready: {self.bot.is_ready()}')
         self.category = self.bot.get_channel(self.bot.config['raids_cid'])
         print(f'''Attempted to load raid category {self.bot.config['raids_cid']}: / {self.category}''')
         self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
