@@ -147,6 +147,7 @@ class Misc(commands.Cog):
         member = ctx.message.guild.get_member(uid)
         if not member:
             await ctx.send(f'Member <@{uid}> not found on this server. Syntax is `.msg <user: id or tagged> <msg>')
+            return
 
         prompt = await ctx.send(f'Click ✅ within 60 seconds to message {member} with:\n\n{msg}')
         await prompt.add_reaction('✅')
