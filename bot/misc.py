@@ -142,6 +142,12 @@ class Misc(commands.Cog):
         match = idPattern.search(uid)
         if match:
             uid = int(match.group(1))
+        else:
+            try:
+                uid = int(uid)
+            except ValueError:
+                await send_message(ctx, 'Please include a message to send. Usage: `.msg <user: id or tagged> <msg>', error=True)
+                return
 
         member = ctx.message.guild.get_member(uid)
         if not member:
