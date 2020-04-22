@@ -148,18 +148,24 @@ class Misc(commands.Cog):
         if not member:
             await ctx.send(f'Member <@{uid}> not found on this server. Syntax is `.msg <user: id or tagged> <msg>')
 
-        prompt = ctx.send(f'Click ✅ within 60 seconds to message {member} with:\n\n```{msg}')
+        prompt = await ctx.send(f'Click ✅ within 60 seconds to message {member} with:\n\n{msg}')
         await prompt.add_reaction('✅')
 
         def check(reaction, user):
             return user == ctx.author and reaction.message.id == prompt.id and str(reaction.emoji) == '✅'
-
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
         except asyncio.TimeoutError:
             pass
         else:
-            await ctx.send('Sent!')
+
+            try:
+                await member.send(msg)
+            except (discord.Forbidden, discord.NotFound, discord.HTTPException) as e:
+                await ctx.send(f'Could not message user. Error: {type(e).__name__}, {e}')
+                return
+
+            await ctx.send('Sent successfully!')
 
 
     @checks.is_wooloo_farm()
