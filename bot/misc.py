@@ -131,7 +131,7 @@ class Misc(commands.Cog):
 
     @checks.is_bot_admin()
     @commands.command()
-    async def msg(self, ctx, arg):
+    async def msg(self, ctx, *, arg):
 
         try:
             uid, msg = arg.split(' ', 1)
