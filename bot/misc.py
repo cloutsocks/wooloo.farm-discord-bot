@@ -139,7 +139,6 @@ class Misc(commands.Cog):
             await send_message(ctx, 'Please include a message to send. Usage: `.msg <user: id or tagged> <msg>', error=True)
             return
 
-        uid = arg
         match = idPattern.search(uid)
         if match:
             uid = int(match.group(1))
