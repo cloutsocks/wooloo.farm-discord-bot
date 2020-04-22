@@ -3,12 +3,14 @@ import re
 import discord
 import random
 import sys
+import asyncio
+import texts
 
 import discord
 from discord.ext import commands
 
 import checks
-from common import send_message, EMOJI, FIELD_BREAK, emojiPattern, customEmojiPattern
+from common import send_message, EMOJI, FIELD_BREAK, idPattern, emojiPattern, customEmojiPattern
 
 
 class Misc(commands.Cog):
@@ -16,6 +18,11 @@ class Misc(commands.Cog):
         self.bot = bot
         self.pets = 0
         self.max_pets = 3
+
+    @checks.is_bot_admin()
+    @commands.command()
+    async def admin(self, ctx):
+        return await ctx.send(texts.ADMIN_HELP)
 
     @checks.is_bot_admin()
     @commands.command()
@@ -50,7 +57,7 @@ class Misc(commands.Cog):
 
         not_found = 'I could not find a message from you in the #raffles channel that has the phrase `Raffle Time!` within the last 100 messages. Either edit the post to include `Raffle Time!` or conduct the raffle yourself.'
         channel = self.bot.get_channel(663479080192049172)
-        msg = await channel.history(limit=100).get(author__id=ctx.author.id)
+        msg = await channel.history(limit=300).get(author__id=ctx.author.id)
         if not msg or 'raffle time!' not in msg.content.lower():
             await ctx.send(not_found)
             return
@@ -121,6 +128,39 @@ class Misc(commands.Cog):
     async def say(self, ctx, channel:discord.TextChannel, *, arg):
         await channel.send(arg)
         await ctx.message.add_reaction('✅')
+
+    @checks.is_bot_admin()
+    @commands.command()
+    async def msg(self, ctx, arg):
+
+        try:
+            uid, msg = arg.split(' ', 1)
+        except ValueError:
+            await send_message(ctx, 'Please include a message to send. Usage: `.msg <user: id or tagged> <msg>', error=True)
+            return
+
+        uid = arg
+        match = idPattern.search(uid)
+        if match:
+            uid = int(match.group(1))
+
+        member = ctx.message.guild.get_member(uid)
+        if not member:
+            await ctx.send(f'Member <@{uid}> not found on this server. Syntax is `.msg <user: id or tagged> <msg>')
+
+        prompt = ctx.send(f'Click ✅ within 60 seconds to message {member} with:\n\n```{msg}')
+        await prompt.add_reaction('✅')
+
+        def check(reaction, user):
+            return user == ctx.author and reaction.message.id == prompt.id and str(reaction.emoji) == '✅'
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            pass
+        else:
+            await ctx.send('Sent!')
+
 
     @checks.is_wooloo_farm()
     @checks.is_bot_admin()

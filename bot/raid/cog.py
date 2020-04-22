@@ -874,10 +874,6 @@ _Managing a Raid_
     raid admin
     '''
 
-    @checks.is_bot_admin()
-    @commands.command()
-    async def admin(self, ctx):
-        return await ctx.send(texts.ADMIN_HELP)
 
     # @checks.is_jacob()
     # @commands.command()
