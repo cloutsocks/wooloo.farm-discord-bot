@@ -45,6 +45,7 @@ class Misc(commands.Cog):
         await message.remove_reaction(payload.emoji, user)
 
     @commands.command()
+    @commands.dm_only()
     @commands.cooldown(1, 180.0, type=commands.BucketType.user)
     async def raffle(self, ctx, *, arg=''):
         try:
@@ -54,9 +55,26 @@ class Misc(commands.Cog):
         except ValueError:
             ctx.command.reset_cooldown(ctx)
             return await send_message(ctx, f'Please specify the number of winnners, i.e. `.raffle 1` or `.raffle 3`', error=True)
+        cns = [702573798309888150, 663479080192049172]
+        # cns = [685642926205960227, 709456316787064834]
 
-        not_found = 'I could not find a message from you in the #raffles channel that has the phrase `Raffle Time!` within the last 100 messages. Either edit the post to include `Raffle Time!` or conduct the raffle yourself.'
-        channel = self.bot.get_channel(663479080192049172)
+        nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'][:len(cns)]
+        cn_text = '\n'.join([f'{nums[i]} <#{cid}>' for i, cid in enumerate(cns)])
+        prompt = await ctx.send(f'Select a channel that contains your raffle post with the words `Raffle Time!`:\n\n{cn_text}')
+        for i, cn in enumerate(cns):
+            await prompt.add_reaction(nums[i])
+
+        def check(reaction, user):
+            return user == ctx.author and reaction.message.id == prompt.id and str(reaction.emoji) in nums
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send('You took too long to make a selection.')
+            return
+
+        cid = cns[nums.index(str(reaction.emoji))]
+        not_found = f'I could not find a message from you in the selected raffle channel <#{cid}> that has the phrase `Raffle Time!` within the last 100 messages. Either edit the post to include `Raffle Time!` or conduct the raffle yourself.'
+        channel = self.bot.get_channel(cid)
         msg = await channel.history(limit=300).get(author__id=ctx.author.id)
         if not msg or 'raffle time!' not in msg.content.lower():
             await ctx.send(not_found)
@@ -76,7 +94,7 @@ class Misc(commands.Cog):
             names = ', '.join([str(winner) for winner in winners])
             mentions = ' '.join([str(winner.mention) for winner in winners])
 
-            await ctx.author.send(f'{reaction.emoji} {n} winner(s) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```{mentions}```')
+            await ctx.author.send(f'{reaction.emoji} {n} winner(s ) for {reaction.count} submissions:\n{names}\n\nYou may copy and paste the following to easily tag them:\n```{mentions}```')
 
 
     @commands.command()
