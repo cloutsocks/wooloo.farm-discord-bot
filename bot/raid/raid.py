@@ -716,7 +716,7 @@ _This raid was hosted by <@{self.host_id}>_
                 self.join_increment = 0
                 ad_message = f'\n_This botte was developed by **jacob#2332** and **rory#3380** of <https://wooloo.farm/>\nFor botte suggestions, please visit <https://discord.gg\wooloo> _{FIELD_BREAK}'
         else:
-            pls_read = f'''\nPlease read <#665681669860098073> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
+            pls_read = f'''\nPlease read the **co-op channel rules** in <#660018430430412810> and the **pinned messages** or you will probably end up **banned** without knowing why. _We will not be undoing bans if you didn't read them._'''
 
         if join_type == 'pb':
             if member.id not in self.pool.join_history:
