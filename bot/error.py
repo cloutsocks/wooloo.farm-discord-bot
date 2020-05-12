@@ -51,9 +51,18 @@ class CommandErrorHandler(commands.Cog):
 
         elif isinstance(error, commands.NoPrivateMessage):
             try:
-                return await ctx.author.send(f'{ctx.command} can not be used in Private Messages.')
+                return await ctx.author.send(f'`{ctx.invoked_with}` can not be used in Private Messages.')
             except:
                 pass
+
+        elif isinstance(error, commands.PrivateMessageOnly):
+            try:
+                return await ctx.author.send(f'`{ctx.invoked_with}` can only be used by DMing the botte. Please delete your command from the channel, and try again here.')
+            except:
+                pass
+
+        elif isinstance(error, commands.CommandOnCooldown):
+            return await ctx.send(f'`{ctx.invoked_with}` is currently on cooldown for you, please try again in {round(error.retry_after, 1)} seconds.')
 
         # For this error example we check to see where it came from...
         elif isinstance(error, commands.BadArgument):

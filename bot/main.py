@@ -82,11 +82,12 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    uid = message.author.id
-    if message.guild is None and uid not in bot.config['creator_ids']:
-        return
-
     await bot.process_commands(message)
+
+    # if message.guild is None:
+    #     return
+
+    uid = message.author.id
     if uid in bot.wfm:
         waiter = bot.wfm[uid]
         if waiter['channel'] != message.channel:
@@ -99,6 +100,10 @@ async def on_message(message):
             pass
 
         await waiter['handler'].handle_message(message)
+
+@bot.check
+async def globally_block_dms(ctx):
+    return ctx.guild is not None or ctx.author.id in bot.config['creator_ids'] or ctx.command.name == 'raffle'
 
 
 with open(os.environ.get('WOOLOOBOT_CONFIG_PATH', '../config/discord_app.json')) as f:

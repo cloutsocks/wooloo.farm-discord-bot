@@ -38,6 +38,11 @@ SPY_EMOJI = '🕵️'
 
 
 EMOJI = {
+
+    'wooletter': '<:WFwooletter:683382614458892343>',
+    'woopet': '<:WFwoopet:683382613691596971>',
+    'wowloo': '<:WFwowloo:683382614358491175>',
+
     'wuwu': '<:wuwu:676228384615038988>',
     'flop': '<:woolooflop:676228385642381322>',
     'wooloo_fast': '<a:wooloofast:676228383528714240>',
@@ -52,6 +57,7 @@ EMOJI = {
     'pokeball': '<:pb:676228383201296414>',
     'nonono': '<a:nononohoney:676228383419662377>',
     'join': '<:memberjoin:676228383058690108>',
+    'leave': '<:bluearrow:685633836712722442>',
     'masterball': '<:mb:676228383218204672>',
     'lovehonk': '<:lovehonk:676228729097289748>',
     'lily': '<:lily:676228383100764160>',

@@ -5,6 +5,7 @@ import sqlite3
 import time
 import importlib
 import sys
+import asyncio
 
 import discord
 from discord.ext import tasks, commands
@@ -54,12 +55,19 @@ class Cog(commands.Cog):
     async def on_load(self):
         self.loaded = False
 
-        self.configure()
+        configured = self.configure()
+        while not configured:
+            await asyncio.sleep(5)
+            configured = self.configure()
 
         print('[DB] Init')
         self.make_db()
         await self.load_raids_from_db()
-        self.save_interval.start()
+        try:
+            self.save_interval.start()
+        except Exception as e:
+            print('Attempting to restart, save Interval Exception: {type(e).__name__}, {e}')
+            await self.bot.misc.execute_restart(by_command=False)
         self.loaded = True
 
     def reload_deps(self):
@@ -110,6 +118,7 @@ class Cog(commands.Cog):
         # print(f'[DB] Attempting to load raids...')
         if self.raids:
             print('[DB ERROR] `self.raids` already exists, should be empty')
+            await self.bot.misc.execute_restart(by_command=False)
 
         t = time.time()
         c = self.db.cursor()
@@ -383,11 +392,31 @@ _Managing a Raid_
 
     @commands.command()
     async def up(self, ctx, *, arg=None):
-        uid = ctx.author.id
-        if uid in self.raids:
-            return await self.raids[uid].up_command(ctx, arg)
+        target_raid = None
+        is_host = False
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                is_host = ctx.author.id == host_id
+                target_raid = raid
+                break
 
-        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
+        if not target_raid:
+            return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
+
+        if not is_host:
+            if len(target_raid.ups) == 0:
+                msg = f'''The host hasn't told me what the current Pokémon is! They can use `.up pokémon` to tell me!'''
+            else:
+                msg = f'''The current Pokémon is **{target_raid.ups[-1]}**! Here's a list of all so far: {target_raid.ups}'''
+            return await ctx.send(msg)
+
+        await target_raid.up_command(ctx, arg)
+
+
+    # todo
+    @commands.command()
+    async def remake(self, ctx, *, arg=None):
+        pass
 
     '''
     host moderation
@@ -460,7 +489,7 @@ _Managing a Raid_
             return await send_message(ctx, '', error=True, image_url=escuchameUrl)
 
         if action == 'skip':
-            return await target_raid.skip(member, ctx)
+            return await target_raid.skip(member)
 
         if action == 'remove':
             return await target_raid.kick(member, ctx)
@@ -702,7 +731,7 @@ _Managing a Raid_
                     return await ctx.send('', embed=e)
                 await ctx.message.add_reaction('✅')
                 e = raid.make_queue_embed(mentions=False, cmd=ctx.invoked_with)
-                return await ctx.author.send(raid.raid_name, embed=e)\
+                return await ctx.author.send(raid.raid_name, embed=e)
 
         return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
@@ -823,8 +852,21 @@ _Managing a Raid_
                 if not user:
                     print(f'[ERROR] Could not `get_user` for `.leave` with id {ctx.author.id}')
                     return
+                await raid.user_leave(user, True)
                 await ctx.message.add_reaction('✅')
-                return await raid.user_leave(user, True)
+                return
+
+        return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
+
+    @commands.command()
+    async def miss(self, ctx, arg=None):
+        for host_id, raid in self.raids.items():
+            if raid and raid.channel == ctx.channel:
+                user = self.bot.get_user(ctx.author.id)
+                if not user:
+                    print(f'[ERROR] Could not `get_user` for `.miss` with id {ctx.author.id}')
+                    return
+                return await raid.miss(user)
 
         return await send_message(ctx, texts.RAID_NOT_FOUND, error=True)
 
@@ -832,10 +874,6 @@ _Managing a Raid_
     raid admin
     '''
 
-    @checks.is_bot_admin()
-    @commands.command()
-    async def admin(self, ctx):
-        return await ctx.send(texts.ADMIN_HELP)
 
     # @checks.is_jacob()
     # @commands.command()
@@ -878,9 +916,11 @@ _Managing a Raid_
     @checks.is_jacob()
     @commands.command(name='dangerclearall', aliases=['dangerca'])
     async def clear_all(self, ctx, arg=None):
+        await ctx.send('Clearing...')
         await self.clear_channels_dirty()
+        await ctx.send('Done.')
 
-    @checks.is_jacob()
+    @commands.check_any(checks.is_jacob(), checks.is_wooloo_staff())
     @commands.command()
     async def pause(self, ctx, arg=None):
         self.creating_enabled = not self.creating_enabled
@@ -1002,19 +1042,41 @@ _Managing a Raid_
         channel_name = f"{emoji}-{raid_name.replace(' ', '-')}"[:100]
         return re.sub('[<>]', '', channel_name)
 
+    @checks.is_jacob()
+    @commands.command(name='manualconfigure')
+    async def manual_configure(self, ctx, arg=None):
+        self.configure()
+        await ctx.send(f'Finished.')
+
     def configure(self):
-        self.category = self.bot.get_channel(self.bot.config['raids_cid'])
-        self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
-        self.guild = self.category.guild
+        try:
+            print(f'Configure step, bot ready: {self.bot.is_ready()}')
+            self.category = self.bot.get_channel(self.bot.config['raids_cid'])
+            if not self.category:
+                return False
+            
+            print(f'''Attempted to load raid category {self.bot.config['raids_cid']}: / {self.category}''')
+            self.archive = self.bot.get_channel(self.bot.config['archive_cid'])
+            print(f'''Attempted to load archive category {self.bot.config['archive_cid']}: / {self.archive}''')
 
-        self.listing_channel = self.bot.get_channel(self.bot.config['listing_channel'])
-        self.thanks_channel = self.bot.get_channel(self.bot.config['thanks_channel'])
-        self.log_channel = self.bot.get_channel(self.bot.config['log_channel'])
-        self.announce_channels = [self.bot.get_channel(cid) for cid in self.bot.config['announce_channels']]
+            self.guild = self.category.guild
+            print(f'''Set guilt to self.category.guild: {self.category.guild}''')
 
-        self.admin_roles = [self.guild.get_role(rid) for rid in self.bot.config['raid_admin_roles']]
-        self.max_raids = self.bot.config['max_raids']
+            self.listing_channel = self.bot.get_channel(self.bot.config['listing_channel'])
+            print(f'''Attempted to load listing channel {self.bot.config['listing_channel']}: / {self.listing_channel}''')
+            self.thanks_channel = self.bot.get_channel(self.bot.config['thanks_channel'])
+            print(f'''Attempted to load thanks channel {self.bot.config['thanks_channel']}: / {self.thanks_channel}''')
+            self.log_channel = self.bot.get_channel(self.bot.config['log_channel'])
+            print(f'''Attempted to load log channel {self.bot.config['log_channel']}: / {self.log_channel}''')
+            self.announce_channels = [self.bot.get_channel(cid) for cid in self.bot.config['announce_channels']]
+            print(f'''Attempted to announce channels {self.bot.config['announce_channels']}: / {self.announce_channels}''')
+
+            self.admin_roles = [self.guild.get_role(rid) for rid in self.bot.config['raid_admin_roles']]
+            self.max_raids = self.bot.config['max_raids']
+        except Exception as e:
+            return False
         print('[CONFIG] Loaded')
+        return True
 
 
 def setup(bot):
