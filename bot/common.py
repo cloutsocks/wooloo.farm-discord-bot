@@ -68,7 +68,7 @@ EMOJI = {
     'discord': '<:discord:676228382895243282>',
     'check': '<:checkfilled:676228383566462976>',
     'check_empty': '<:checkempty:676228383062884364>',
-    'heimlichegg': '<:heimlichandegg:676228382811226124>',
+    'weepinbegg': '<:weepinbegg:684221771712692287>',
 }
 
 escuchameUrl = 'https://i.imgur.com/dJGmQXr.png'
@@ -104,7 +104,7 @@ async def send_message(ctx, text, message=None, ping=True, error=False, color=No
     message = message or ctx.message
 
     if(error):
-        text = f"{EMOJI['heimlichegg']}{EMOJI['nonono']} {text}"
+        text = f"{EMOJI['weepinbegg']}{EMOJI['nonono']} {text}"
 
     e = discord.Embed(description=text)
     if color or error:

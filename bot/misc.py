@@ -103,7 +103,7 @@ class Misc(commands.Cog):
             return await ctx.send(f'''_Wooloo is all petted out and sleeping now._ {EMOJI['wooloo']}💤''')
         self.pets += 1
         if random.random() < 0.15:
-            msg = f'''{EMOJI['heimlichegg']}💚💚'''
+            msg = f'''{EMOJI['weepinbegg']}💚💚'''
         else:
             em = random.choice([EMOJI['woopet'], EMOJI['woopet'], EMOJI['woopet'], EMOJI['wowloo'], EMOJI['wowloo'], EMOJI['wooletter'], EMOJI['flop'], EMOJI['wuwu'], EMOJI['wooloo_fast']])
             msg = f'''{em}💙'''
