@@ -17,7 +17,7 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pets = 0
-        self.max_pets = 3
+        self.max_pets = random.randint(5, 420)
 
     @checks.is_bot_admin()
     @commands.command()
