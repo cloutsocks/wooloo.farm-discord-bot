@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import traceback
+import demoji
 
 import discord
 from discord.ext import commands
@@ -17,6 +18,7 @@ initial_extensions = (
     'raid.cog',
 )
 
+demoji.download_codes()
 
 def command_prefixes(bot, message):
     return ['.']

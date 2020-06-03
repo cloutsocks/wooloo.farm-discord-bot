@@ -6,6 +6,7 @@ import sys
 import asyncio
 import texts
 
+import demoji
 import discord
 from discord.ext import commands
 
@@ -131,7 +132,8 @@ class Misc(commands.Cog):
         if 'votes=' in arg:
             return await send_message(ctx, '''You don't need to do votes= for emoji anymore, I'll pull them automatically.''', error=True)
 
-        emoji = list(re.findall(emojiPattern, arg, flags=re.DOTALL)) + list(re.findall(customEmojiPattern, arg, flags=re.DOTALL))
+        # emoji = list(re.findall(emojiPattern, arg, flags=re.DOTALL)) + list(re.findall(customEmojiPattern, arg, flags=re.DOTALL))
+        emoji = list(demoji.findall(arg).keys()) + list(re.findall(customEmojiPattern, arg, flags=re.DOTALL))
         msg = await ctx.send(f"**Poll time! <@{ctx.author.id}> asks:**\n{arg}")
         for reaction in emoji:
             await msg.add_reaction(reaction.strip('<> '))
