@@ -103,10 +103,6 @@ async def on_message(message):
 
         await waiter['handler'].handle_message(message)
 
-@bot.event
-async def on_member_join(member):
-    await
-
 
 @bot.check
 async def globally_block_dms(ctx):
