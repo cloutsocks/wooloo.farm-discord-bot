@@ -792,7 +792,7 @@ _Managing a Raid_
             await caught_msg.add_reaction(reaction.strip('<>'))
 
     @commands.command()
-    async def code(self, ctx, arg=None):
+    async def code(self, ctx, *, arg=None):
         for host_id, raid in self.raids.items():
             if raid and raid.channel == ctx.channel:
                 is_host = ctx.author.id == host_id
