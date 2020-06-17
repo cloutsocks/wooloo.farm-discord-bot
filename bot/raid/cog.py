@@ -570,7 +570,7 @@ _Managing a Raid_
 
         if raid.private:
             raid.code = None
-            msg = 'Raid is now **private**, which means the `.code` will be hidden. I\'ve removed the old one, so please set a secret one in the form `.code 1234`. If you\'ve pinned it, you might want to `.unpin` it. Type `.private` again to toggle.'
+            msg = 'Raid is now **private**, which means the `.code` will be hidden. I\'ve removed the old one, so please set a secret one in the form `.code 12345678`. If you\'ve pinned it, you might want to `.unpin` it. Type `.private` again to toggle.'
         else:
             msg = f'''Raid is no longer private, which means the code is public again (it's **{raid.code}**). Type `.private` again to toggle.'''
 
@@ -800,7 +800,7 @@ _Managing a Raid_
                 if not arg or not is_host:
                     if not raid.code:
                         if is_host:
-                            return await send_message(ctx, '''You haven't set a code yet. Please choose a valid 4-digit code in the form `.code 1234`''', error=True)
+                            return await send_message(ctx, '''You haven't set a code yet. Please choose a valid 8-digit code in the form `.code 12345678`''', error=True)
                         else:
                             return await send_message(ctx, 'The code hasn\'t been set by the host.', error=True)
 
@@ -815,7 +815,7 @@ _Managing a Raid_
                 error = False
                 code = None
                 if arg:
-                    m = re.search(r'\d\d\d\d', arg)
+                    m = re.search(r'\d{8}', arg)
                     if m:
                         code = m.group(0)
                     else:
@@ -824,9 +824,9 @@ _Managing a Raid_
                 if not code:
                     msg = ''
                     if raid.code:
-                        msg = f'The code is currently set to **{raid.code}**, but you can change it with `.code 1234` using any valid 4-digit number.'
+                        msg = f'The code is currently set to **{raid.code}**, but you can change it with `.code 12345678` using any valid 8-digit number.'
                     else:
-                        msg = f'''You haven't set a code yet. Please choose a valid 4-digit code in the form `.code 1234`'''
+                        msg = f'''You haven't set a code yet. Please choose a valid 8-digit code in the form `.code 12345678`'''
 
                     if raid.private:
                         await ctx.message.add_reaction(ICON_CLOSE if error else '✅')

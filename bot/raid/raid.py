@@ -493,13 +493,13 @@ _This raid was hosted by <@{self.host_id}>_
 
             code = None
             if arg:
-                m = re.search(r'\d\d\d\d', arg)
+                m = re.search(r'\d{8}', arg)
                 if m:
                     code = m.group(0)
             elif self.code:
                 code = self.code
             if not code:
-                return await send_message(ctx, f'Please choose a valid 4-digit code in the form `.round 1234`. You can re-use this code for subsequent rounds by just typing `.round`', error=True)
+                return await send_message(ctx, f'Please choose a valid 8-digit code in the form `.round 1234`. You can re-use this code for subsequent rounds by just typing `.round`', error=True)
 
             if arg and self.private:
                 await ctx.message.delete()

@@ -103,6 +103,11 @@ async def on_message(message):
 
         await waiter['handler'].handle_message(message)
 
+@bot.event
+async def on_member_join(member):
+    await
+
+
 @bot.check
 async def globally_block_dms(ctx):
     return ctx.guild is not None or ctx.author.id in bot.config['creator_ids'] or ctx.command.name == 'raffle'
