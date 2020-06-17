@@ -478,7 +478,7 @@ _This raid was hosted by <@{self.host_id}>_
         e = discord.Embed(description=f'The current Pokémon is: **{arg}**!')
         await ctx.send(embed=e)
 
-    async def round_command(self, ctx, arg):
+    async def round_command(self, ctx, *, arg):
 
         async with self.lock:
             if self.closed or not self.channel:
@@ -493,13 +493,13 @@ _This raid was hosted by <@{self.host_id}>_
 
             code = None
             if arg:
-                m = re.search(r'\d{8}', arg)
+                m = re.search(r'\d{4}\s?\d{4}', arg)
                 if m:
                     code = m.group(0)
             elif self.code:
                 code = self.code
             if not code:
-                return await send_message(ctx, f'Please choose a valid 8-digit code in the form `.round 1234`. You can re-use this code for subsequent rounds by just typing `.round`', error=True)
+                return await send_message(ctx, f'Please choose a valid 8-digit code in the form `.round 1234 5678`. You can re-use this code for subsequent rounds by just typing `.round`', error=True)
 
             if arg and self.private:
                 await ctx.message.delete()
