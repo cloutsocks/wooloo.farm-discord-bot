@@ -369,7 +369,7 @@ _Managing a Raid_
         await channel.send(f"<@{raid.host_id}> {msg}Your raid was cancelled. {EMOJI['flop']}")
 
     @commands.command()
-    async def round(self, ctx, arg=None):
+    async def round(self, ctx, *, arg=None):
         uid = ctx.author.id
         if uid in self.raids:
             return await self.raids[uid].round_command(ctx, arg)

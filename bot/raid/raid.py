@@ -478,7 +478,7 @@ _This raid was hosted by <@{self.host_id}>_
         e = discord.Embed(description=f'The current Pokémon is: **{arg}**!')
         await ctx.send(embed=e)
 
-    async def round_command(self, ctx, *, arg):
+    async def round_command(self, ctx, arg):
 
         async with self.lock:
             if self.closed or not self.channel:
