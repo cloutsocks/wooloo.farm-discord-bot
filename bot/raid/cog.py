@@ -347,7 +347,7 @@ _Managing a Raid_
         # elif options['mode'] == FFA:
         #     options['name'] = f'''ffa {options['raid_name']}'''
 
-        # channel_name = f"{RAID_EMOJI}-{options['raid_name'].replace(' ', '-')}"[:100]
+        # channel_name = f"{RAID_EMOJI}┊{options['raid_name'].replace(' ', '-')}"[:100]
         # options['channel_name'] = re.sub('[<>]', '', channel_name)
 
         self.raids[uid] = Raid(self.bot, self, self.guild, ctx.author.id)
@@ -613,7 +613,7 @@ _Managing a Raid_
             return await send_message(ctx, f'You may only do this in your active raid channel.', error=True)
 
         target_raid.emoji = emoji or RAID_EMOJI
-        updated_name = f'{target_raid.emoji}-{name}'
+        updated_name = f'{target_raid.emoji}┊{name}'
         await target_raid.channel.edit(name=updated_name)
         await target_raid.update_channel_emoji()
         await ctx.message.add_reaction('✅')
@@ -1039,7 +1039,7 @@ _Managing a Raid_
         return channel
 
     def make_channel_name(self, raid_name, emoji):
-        channel_name = f"{emoji}-{raid_name.replace(' ', '-')}"[:100]
+        channel_name = f"{emoji}┊{raid_name.replace(' ', '-')}"[:100]
         return re.sub('[<>]', '', channel_name)
 
     @checks.is_jacob()
