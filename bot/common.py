@@ -68,7 +68,7 @@ EMOJI = {
     'discord': '<:discord:676228382895243282>',
     'check': '<:checkfilled:676228383566462976>',
     'check_empty': '<:checkempty:676228383062884364>',
-    'weepinbegg': '<:weepinbegg:684221771712692287>',
+    'weepinbegg': '<:weepinbegg:716870691999186954>',
 }
 
 escuchameUrl = 'https://i.imgur.com/dJGmQXr.png'
